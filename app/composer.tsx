@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Draft } from "@/lib/drafts";
 import type { ResearchNote } from "@/lib/research";
 import { ComposerCanvas } from "@/components/composer-canvas";
 import { MarkdownView } from "@/components/markdown";
+import { NewDraftModal, ScheduleModal } from "@/components/modals";
 import {
   Plus,
   Search,
@@ -13,23 +14,30 @@ import {
   Calendar,
   BarChart3,
   Plug,
-  HelpCircle,
   Settings as SettingsIcon,
   ChevronDown,
+  Menu,
+  BookOpen,
+  CalendarClock,
 } from "lucide-react";
 import clsx from "clsx";
 
 type Tab = "drafts" | "scheduled" | "posted";
 
 export function Composer({
-  drafts,
+  drafts: initialDrafts,
   research,
 }: {
   drafts: Draft[];
   research: ResearchNote | null;
 }) {
+  const [drafts, setDrafts] = useState<Draft[]>(initialDrafts);
   const [tab, setTab] = useState<Tab>("drafts");
   const [filter, setFilter] = useState("");
+  const [showResearch, setShowResearch] = useState(true);
+  const [showDrafts, setShowDrafts] = useState(true);
+  const [openSchedule, setOpenSchedule] = useState(false);
+  const [openNew, setOpenNew] = useState(false);
 
   const tabbed = useMemo(() => {
     if (tab === "drafts")
@@ -57,32 +65,63 @@ export function Composer({
   const [status, setStatus] = useState(selected?.status || "pending");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [showResearch, setShowResearch] = useState(true);
+
+  // Auto-collapse panels on small screens.
+  useEffect(() => {
+    function adjust() {
+      if (window.innerWidth < 640) {
+        setShowDrafts(false);
+        setShowResearch(false);
+      } else if (window.innerWidth < 1024) {
+        setShowResearch(false);
+      }
+    }
+    adjust();
+    window.addEventListener("resize", adjust);
+    return () => window.removeEventListener("resize", adjust);
+  }, []);
 
   function pick(d: Draft) {
     setSelected(d);
     setBody(d.body);
     setStatus(d.status);
     setSavedAt(null);
+    if (window.innerWidth < 640) setShowDrafts(false);
   }
 
-  async function save(opts: { newStatus?: string } = {}) {
+  async function refreshDrafts(): Promise<Draft[] | null> {
+    try {
+      const r = await fetch("/api/drafts");
+      if (!r.ok) return null;
+      const { drafts: list } = await r.json();
+      setDrafts(list);
+      return list;
+    } catch {
+      return null;
+    }
+  }
+
+  async function save(opts: {
+    newStatus?: string;
+    scheduled_at?: string | null;
+  } = {}) {
     if (!selected) return;
     setSaving(true);
     try {
+      const payload: any = { body };
+      if (opts.newStatus !== undefined) payload.status = opts.newStatus;
+      if (opts.scheduled_at !== undefined) payload.scheduled_at = opts.scheduled_at;
       const res = await fetch(`/api/drafts/${selected.filename}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          body,
-          status: opts.newStatus ?? status,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(await res.text());
       const { draft } = await res.json();
       setSelected(draft);
       setStatus(draft.status);
       setSavedAt(new Date().toISOString());
+      refreshDrafts();
     } catch (e: any) {
       alert("Save failed: " + (e?.message || e));
     } finally {
@@ -90,17 +129,42 @@ export function Composer({
     }
   }
 
+  async function onCreated(filename: string) {
+    const list = await refreshDrafts();
+    if (!list) return;
+    const found = list.find((d) => d.filename === filename);
+    if (found) pick(found);
+  }
+
   return (
     <div className="flex h-screen min-h-0">
       {/* Drafts column — Typefully's left panel */}
-      <aside className="w-[280px] shrink-0 border-r border-line-subtle bg-bg-base flex flex-col">
-        <div className="px-3 pt-4 pb-2 flex items-center gap-2">
-          <button className="flex-1 flex items-center gap-2 h-9 px-2 rounded-sm text-[13px] text-ink-700 hover:bg-bg-subtle transition-colors">
-            <span className="w-6 h-6 rounded-full bg-ink-900 text-white inline-flex items-center justify-center text-[10px] font-semibold">SH</span>
-            <span className="font-medium truncate">Sebastian Heine</span>
-            <ChevronDown size={14} className="ml-auto text-ink-400" />
-          </button>
-          <button className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle">
+      <aside
+        className={clsx(
+          "shrink-0 border-r border-line-subtle bg-bg-base flex flex-col",
+          showDrafts ? "w-[280px]" : "w-0 overflow-hidden border-r-0",
+          "transition-[width] duration-200"
+        )}
+      >
+        <div className="px-3 pt-3 pb-2 flex items-center gap-1.5">
+          <div className="flex-1 flex items-center gap-2 h-9 px-2 rounded-sm hover:bg-bg-subtle transition-colors cursor-default group">
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-ink-900 to-ink-700 text-white inline-flex items-center justify-center text-[10.5px] font-semibold shadow-card">
+              SH
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] font-semibold text-ink-900 leading-tight truncate">
+                Sebastian Heine
+              </div>
+              <div className="text-[10.5px] text-ink-400 leading-tight truncate font-mono">
+                @s3bastian_w3
+              </div>
+            </div>
+            <ChevronDown size={12} className="text-ink-400 opacity-0 group-hover:opacity-100" />
+          </div>
+          <button
+            title="Search"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle"
+          >
             <Search size={14} />
           </button>
         </div>
@@ -113,7 +177,7 @@ export function Composer({
                 key={t}
                 onClick={() => setTab(t)}
                 className={clsx(
-                  "h-10 -mb-px text-[12.5px] font-medium uppercase tracking-label transition-colors capitalize border-b-2",
+                  "h-9 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors capitalize border-b-2",
                   tab === t
                     ? "text-ink-900 border-ink-900"
                     : "text-ink-400 border-transparent hover:text-ink-700"
@@ -127,16 +191,16 @@ export function Composer({
 
         {/* New draft + filter */}
         <div className="px-3 py-3 space-y-2">
-          <a
-            href="/inbox"
-            className="flex items-center justify-between w-full h-9 px-2.5 rounded-sm bg-bg-surface border border-line-subtle text-[13px] text-ink-700 hover:border-line-strong transition-colors group"
+          <button
+            onClick={() => setOpenNew(true)}
+            className="flex items-center justify-between w-full h-9 px-2.5 rounded-sm bg-bg-surface border border-line-subtle text-[13px] text-ink-700 hover:border-line-strong hover:bg-bg-subtle transition-colors"
           >
             <span className="inline-flex items-center gap-2">
               <Plus size={14} />
               New draft
             </span>
-            <ChevronDown size={14} className="text-ink-400 -rotate-90" />
-          </a>
+            <span className="text-[10px] text-ink-400 font-mono">⌘N</span>
+          </button>
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -177,6 +241,12 @@ export function Composer({
                         <span className="font-mono text-ink-400 lowercase">
                           {d.platform === "x" ? "X" : "linkedin"}
                           {d.reply_to_id && " · reply"}
+                          {d.scheduled_at && (
+                            <span className="ml-1.5 inline-flex items-center gap-0.5">
+                              <CalendarClock size={9} />
+                              {String(d.scheduled_at).slice(5, 16)}
+                            </span>
+                          )}
                         </span>
                         <span
                           className={clsx(
@@ -201,20 +271,27 @@ export function Composer({
           )}
         </div>
 
-        {/* Bottom secondary nav (Typefully pattern) */}
+        {/* Bottom secondary nav */}
         <div className="border-t border-line-subtle px-2 py-2 space-y-px">
           <NavLink href="/queue" icon={Calendar} label="Queue" />
           <NavLink href="/analytics" icon={BarChart3} label="Analytics" />
           <NavLink href="/kols" icon={Plug} label="KOLs" />
+          <NavLink href="/research" icon={BookOpen} label="Research" />
           <NavLink href="/settings" icon={SettingsIcon} label="Settings" />
-          <NavLink href="/research" icon={HelpCircle} label="Research" />
         </div>
       </aside>
 
       {/* Center: composer */}
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Top bar */}
-        <header className="h-12 px-4 border-b border-line-subtle flex items-center gap-2 bg-bg-base">
+        <header className="h-12 px-3 sm:px-4 border-b border-line-subtle flex items-center gap-2 bg-bg-base">
+          <button
+            onClick={() => setShowDrafts((v) => !v)}
+            title={showDrafts ? "Hide drafts" : "Show drafts"}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle"
+          >
+            <Menu size={15} />
+          </button>
           {selected && (
             <span
               className={clsx(
@@ -231,31 +308,34 @@ export function Composer({
             {selected ? selected.filename.replace(/\.md$/, "") : "Pipeline composer"}
           </span>
           <div className="flex-1" />
-          <button
-            onClick={() => setShowResearch((v) => !v)}
-            title={showResearch ? "Hide research" : "Show research"}
-            className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle"
-          >
-            {showResearch ? <PanelRightClose size={15} /> : <PanelLeftClose size={15} />}
-          </button>
           {selected && (
             <>
               <button
-                onClick={() => save({ newStatus: status === "approved" ? "pending" : "approved" })}
-                disabled={saving}
-                className="h-8 px-3 rounded-sm bg-warn text-white text-[12.5px] font-semibold hover:bg-warn-soft disabled:opacity-50 inline-flex items-center gap-1.5"
+                onClick={() => setOpenSchedule(true)}
+                title="Schedule"
+                className="h-8 px-2.5 sm:px-3 rounded-sm bg-warn text-white text-[12.5px] font-semibold hover:bg-warn-soft inline-flex items-center gap-1.5"
               >
-                {status === "approved" ? "Un-approve" : "Schedule"}
+                <CalendarClock size={13} />
+                <span className="hidden sm:inline">
+                  {selected.scheduled_at ? "Reschedule" : "Schedule"}
+                </span>
               </button>
               <button
                 onClick={() => save()}
                 disabled={saving || !body.trim()}
-                className="h-8 px-3 rounded-sm bg-brand text-white text-[12.5px] font-semibold hover:bg-brand-soft disabled:opacity-50"
+                className="h-8 px-2.5 sm:px-3 rounded-sm bg-brand text-white text-[12.5px] font-semibold hover:bg-brand-soft disabled:opacity-50"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
             </>
           )}
+          <button
+            onClick={() => setShowResearch((v) => !v)}
+            title={showResearch ? "Hide research" : "Show research"}
+            className="h-8 w-8 hidden md:inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle"
+          >
+            {showResearch ? <PanelRightClose size={15} /> : <PanelLeftClose size={15} />}
+          </button>
         </header>
 
         <ComposerCanvas
@@ -275,9 +355,9 @@ export function Composer({
         />
       </main>
 
-      {/* Right: research note (collapsible) */}
+      {/* Right: research note */}
       {showResearch && (
-        <aside className="w-[380px] shrink-0 border-l border-line-subtle flex flex-col bg-bg-base">
+        <aside className="hidden md:flex w-[380px] shrink-0 border-l border-line-subtle flex-col bg-bg-base">
           <header className="h-12 px-5 border-b border-line-subtle flex items-baseline gap-3">
             <span className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold">
               Research
@@ -304,6 +384,18 @@ export function Composer({
           </div>
         </aside>
       )}
+
+      <ScheduleModal
+        open={openSchedule}
+        onClose={() => setOpenSchedule(false)}
+        initial={selected?.scheduled_at}
+        onSave={(iso) => save({ scheduled_at: iso, newStatus: iso ? "approved" : status })}
+      />
+      <NewDraftModal
+        open={openNew}
+        onClose={() => setOpenNew(false)}
+        onCreate={onCreated}
+      />
     </div>
   );
 }

@@ -394,23 +394,80 @@ function XPreview({ body }: { body: string }) {
 }
 
 function LinkedInPreview({ body }: { body: string }) {
+  // Truncate body at the typical LinkedIn 'see more' threshold (~210 chars
+  // before line breaks compress; using char-count for simplicity).
+  const SEE_MORE = 210;
+  const isLong = body.length > SEE_MORE;
   return (
-    <div className="bg-bg-surface border border-line-subtle rounded-md p-4 shadow-card">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-11 h-11 rounded-full bg-ink-900 text-white flex items-center justify-center font-semibold shrink-0">
+    <div className="bg-white border border-[#e6e6e6] rounded-[10px] shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] overflow-hidden font-sans">
+      {/* Author row */}
+      <div className="px-4 pt-3 pb-2 flex items-start gap-2">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0a66c2] to-[#004182] text-white flex items-center justify-center font-semibold shrink-0 text-[15px]">
           SH
         </div>
-        <div>
-          <div className="text-[14px] font-semibold text-ink-900">Sebastian Heine</div>
-          <div className="text-[11.5px] text-ink-500">
-            CCO · sheine.ai · The SHeine Brief
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold text-[#000000e6] leading-tight hover:underline cursor-pointer">
+            Sebastian Heine
           </div>
-          <div className="text-[11px] text-ink-400">now · 🌐</div>
+          <div className="text-[12px] text-[#00000099] leading-tight truncate">
+            CCO &amp; MLRO · sheine.ai · author of The SHeine Brief
+          </div>
+          <div className="text-[12px] text-[#00000099] leading-tight mt-0.5 inline-flex items-center gap-1">
+            <span>now</span>
+            <span>·</span>
+            <span aria-label="Visible to anyone">🌐</span>
+          </div>
         </div>
+        <button className="text-[#00000099] hover:bg-[#0000000a] rounded-full w-8 h-8 inline-flex items-center justify-center text-[18px] leading-none">
+          ⋯
+        </button>
       </div>
-      <p className="text-[14px] leading-[1.55] text-ink-900 whitespace-pre-wrap break-words">
-        {body}
-      </p>
+
+      {/* Body */}
+      <div className="px-4 pb-3">
+        <p className="text-[14px] leading-[1.43] text-[#000000e6] whitespace-pre-wrap break-words">
+          {isLong ? (
+            <>
+              {body.slice(0, SEE_MORE)}
+              <span className="text-[#00000099]">…</span>{" "}
+              <span className="text-[#00000099] hover:underline cursor-pointer text-[13.5px]">
+                see more
+              </span>
+            </>
+          ) : (
+            body
+          )}
+        </p>
+      </div>
+
+      {/* Reaction count strip */}
+      <div className="px-4 py-1.5 flex items-center justify-between text-[12px] text-[#00000099] border-t border-[#0000000d]">
+        <span className="inline-flex items-center gap-0.5">
+          <span className="inline-block w-4 h-4 rounded-full bg-[#0a66c2] text-white text-[9px] inline-flex items-center justify-center">
+            👍
+          </span>
+          <span className="hover:underline cursor-pointer">12</span>
+        </span>
+        <span className="hover:underline cursor-pointer">2 comments</span>
+      </div>
+
+      {/* Action bar */}
+      <div className="grid grid-cols-4 border-t border-[#0000000d]">
+        {[
+          { label: "Like", icon: "👍" },
+          { label: "Comment", icon: "💬" },
+          { label: "Repost", icon: "🔄" },
+          { label: "Send", icon: "📤" },
+        ].map((a) => (
+          <button
+            key={a.label}
+            className="h-10 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[#00000099] hover:bg-[#0000000a]"
+          >
+            <span className="text-[14px] grayscale opacity-80">{a.icon}</span>
+            <span className="hidden sm:inline">{a.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
