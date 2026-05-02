@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Save,
   CalendarClock,
+  Quote,
 } from "lucide-react";
 import { Button, Empty, PlatformBadge, StatusBadge } from "@/components/ui";
 import {
@@ -44,8 +45,10 @@ type Props = {
   setStatus: (s: string) => void;
   saving: boolean;
   savedAt: string | null;
-  save: (opts?: { newStatus?: string }) => void;
+  save: (opts?: { newStatus?: string; scheduled_at?: string | null; quote_tweet_url?: string | null }) => void;
 };
+
+const X_URL_RE = /https?:\/\/(?:x|twitter)\.com\/[^/\s]+\/status\/(\d+)/i;
 
 export function ComposerCanvas({
   selected,
@@ -76,6 +79,18 @@ export function ComposerCanvas({
   const xCount = body.length;
   const xOver = selected.platform === "x" && xCount > X_LIMIT;
   const xPct = Math.min(100, (xCount / X_LIMIT) * 100);
+
+  // Detect an X URL inside the body — offer to convert into a quote tweet.
+  const detectedXUrl = selected.platform === "x" && !selected.quote_tweet_url
+    ? (body.match(X_URL_RE)?.[0] ?? null)
+    : null;
+
+  function makeQuoteTweet() {
+    if (!detectedXUrl) return;
+    const stripped = body.replace(X_URL_RE, "").replace(/\s{2,}/g, " ").trim();
+    setBody(stripped);
+    save({ quote_tweet_url: detectedXUrl });
+  }
 
   function transformSel(fn: (s: string) => string) {
     const ta = ref.current;
@@ -148,13 +163,8 @@ export function ComposerCanvas({
         )}
 
         {/* Context strip */}
-        {(selected.based_on || selected.reply_to_id) && (
+        {(selected.based_on || selected.reply_to_id || selected.source_label || selected.source_url || selected.quote_tweet_url) && (
           <div className="mb-3 space-y-1">
-            {selected.based_on && (
-              <p className="text-[12px] text-ink-500 italic">
-                Based on: {selected.based_on}
-              </p>
-            )}
             {selected.reply_to_id && (
               <p className="text-[12px] text-brand">
                 ↳ Replying to{" "}
@@ -165,6 +175,19 @@ export function ComposerCanvas({
                   className="font-mono hover:underline"
                 >
                   @{selected.reply_to_handle || "?"}/{selected.reply_to_id}
+                </a>
+              </p>
+            )}
+            {selected.quote_tweet_url && (
+              <p className="text-[12px] text-warn">
+                ◳ Quote-tweeting{" "}
+                <a
+                  href={selected.quote_tweet_url}
+                  target="_blank"
+                  rel="noopener"
+                  className="font-mono hover:underline"
+                >
+                  {selected.quote_tweet_url.replace("https://", "")}
                 </a>
               </p>
             )}
@@ -222,6 +245,24 @@ export function ComposerCanvas({
             className="w-full min-h-[260px] px-5 py-4 bg-bg-surface text-ink-900 text-[15px] leading-[1.55] resize-y focus:outline-none placeholder:text-ink-300"
           />
 
+          {/* Quote-tweet detection banner */}
+          {detectedXUrl && (
+            <div className="px-3 py-2 border-t border-line-subtle bg-warn/5 flex items-center gap-2">
+              <Quote size={13} className="text-warn shrink-0" />
+              <span className="text-[12px] text-ink-700">
+                Detected an X URL in the body. Convert to a quote tweet?
+              </span>
+              <span className="font-mono text-[10.5px] text-ink-400 truncate flex-1">
+                {detectedXUrl.replace("https://", "")}
+              </span>
+              <button
+                onClick={makeQuoteTweet}
+                className="h-6 px-2 rounded-xs bg-warn text-white text-[11px] font-semibold hover:bg-warn-soft"
+              >
+                Make quote
+              </button>
+            </div>
+          )}
           {/* Footer: counter + schedule + save indicator */}
           <div className="flex items-center justify-between px-3 h-9 border-t border-line-subtle bg-bg-base text-[11.5px]">
             <div className="flex items-center gap-3">
@@ -249,6 +290,31 @@ export function ComposerCanvas({
 
         {/* Live preview */}
         <Preview platform={selected.platform} body={body} />
+
+        {/* Source attribution — always visible below the draft */}
+        {(selected.source_url || selected.source_label || selected.based_on) && (
+          <div className="mt-4 border-l-2 border-line-strong pl-3 py-1.5">
+            <div className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold mb-0.5">
+              Source
+            </div>
+            {selected.source_label && (
+              <p className="text-[12px] text-ink-700">{selected.source_label}</p>
+            )}
+            {selected.source_url && (
+              <a
+                href={selected.source_url}
+                target="_blank"
+                rel="noopener"
+                className="text-[11.5px] text-brand font-mono hover:underline break-all"
+              >
+                {selected.source_url}
+              </a>
+            )}
+            {!selected.source_label && selected.based_on && (
+              <p className="text-[12px] text-ink-500 italic">{selected.based_on}</p>
+            )}
+          </div>
+        )}
 
         {/* Voice lints */}
         <VoiceLints body={body} />

@@ -16,6 +16,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { filename: string 
     status: typeof body.status === "string" ? body.status : undefined,
     scheduled_at: body.scheduled_at === undefined ? undefined : body.scheduled_at,
     auto_post: typeof body.auto_post === "boolean" ? body.auto_post : undefined,
+    quote_tweet_url: body.quote_tweet_url === undefined ? undefined : body.quote_tweet_url,
   });
   if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ draft: updated });

@@ -132,6 +132,7 @@ export function Composer({
   async function save(opts: {
     newStatus?: string;
     scheduled_at?: string | null;
+    quote_tweet_url?: string | null;
   } = {}) {
     if (!selected) return;
     setSaving(true);
@@ -139,6 +140,7 @@ export function Composer({
       const payload: any = { body };
       if (opts.newStatus !== undefined) payload.status = opts.newStatus;
       if (opts.scheduled_at !== undefined) payload.scheduled_at = opts.scheduled_at;
+      if (opts.quote_tweet_url !== undefined) payload.quote_tweet_url = opts.quote_tweet_url;
       const res = await fetch(`/api/drafts/${selected.filename}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
