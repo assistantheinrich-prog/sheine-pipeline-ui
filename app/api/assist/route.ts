@@ -5,6 +5,21 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 240;
 
 const PRESETS: Record<string, string> = {
+  humanize: `Make this read like a human wrote it, not an AI. Apply Sebastian's voice rules + Dickie Bush's read-aloud test:
+
+- READ-ALOUD TEST. Every sentence should be speakable in one breath. If you stumble or run out of breath, the sentence is too long or too jargon-heavy. Break it up.
+- WRITE LIKE YOU TALK. Contractions are fine. Sentence fragments are fine. The cadence of speech, not the cadence of academic writing.
+- LEAD WITH THE PUNCHLINE. First sentence is the takeaway, not a setup.
+- BEHIND-THE-CURTAIN POV. Sebastian writes as a CCO who has implemented this stuff. Frame insights as "what this actually means for compliance teams" — not commentary.
+- NO BS. Cut hedging language ("it could be argued", "it's worth noting", "many would say"). Just say it.
+- BANNED AI words to remove: delve, leverage, navigate, robust, seamless, tapestry, intricate, dive into, unlock, game-changer, supercharged, ecosystem, paradigm, holistic, comprehensive, in the realm of, when it comes to.
+- BANNED hedge phrases: "I think", "perhaps", "arguably", "in many ways", "to some extent".
+- NO em-dash overuse. Two per post max.
+- NO triadic constructions ("not X, not Y, but Z" pattern that AI loves). Use one direct claim instead.
+- NO emojis.
+- Length: keep within ≤ 280 chars for X / under 250 words for LinkedIn.
+
+Output ONLY the rewritten draft, nothing else. No preamble, no explanation.`,
   punchier: "Make this draft punchier without changing the meaning. Keep ≤ 280 chars for X / under 250 words for LinkedIn. No emojis. No banned AI words (delve/leverage/navigate/robust/seamless/tapestry/intricate/dive into/unlock/game-changer/supercharged). First-person practitioner POV. Output ONLY the rewritten draft, nothing else.",
   shorter: "Shorten this draft to roughly half the length while preserving the strongest single point. Keep voice (no emojis, no AI tells, first-person practitioner). Output ONLY the rewritten draft, nothing else.",
   longer: "Expand this draft with one additional concrete detail (specific regulator name, rule reference, or implementation consequence). Keep ≤ 280 chars for X / under 280 words for LinkedIn. Voice rules: no emojis, no AI tells, first-person practitioner. Output ONLY the rewritten draft, nothing else.",

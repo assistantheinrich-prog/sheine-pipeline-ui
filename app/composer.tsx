@@ -7,6 +7,7 @@ import { ComposerCanvas } from "@/components/composer-canvas";
 import { MarkdownView } from "@/components/markdown";
 import { NewDraftModal, ScheduleModal } from "@/components/modals";
 import { AssistPanel } from "@/components/assist-panel";
+import { ImagePanel } from "@/components/image-panel";
 import {
   Plus,
   Search,
@@ -382,12 +383,13 @@ export function Composer({
         />
       </main>
 
-      {/* Right: research / assist tabs */}
+      {/* Right: research / assist / image tabs */}
       {showResearch && (
         <RightRail
           research={research}
           body={body}
           platform={selected?.platform || "x"}
+          draftFilename={selected?.filename}
           onApply={(s) => {
             setBody(s);
             setSavedAt(null);
@@ -414,44 +416,38 @@ function RightRail({
   research,
   body,
   platform,
+  draftFilename,
   onApply,
 }: {
   research: ResearchNote | null;
   body: string;
   platform: string;
+  draftFilename?: string;
   onApply: (s: string) => void;
 }) {
-  const [tab, setTab] = useState<"research" | "assist">("research");
+  const [tab, setTab] = useState<"research" | "assist" | "image">("research");
   return (
-    <aside className="hidden md:flex w-[380px] shrink-0 border-l border-line-subtle flex-col bg-bg-base">
-      <header className="h-12 px-5 border-b border-line-subtle flex items-center gap-4">
-        <button
-          onClick={() => setTab("research")}
-          className={clsx(
-            "h-12 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors border-b-2",
-            tab === "research"
-              ? "text-ink-900 border-ink-900"
-              : "text-ink-400 border-transparent hover:text-ink-700"
-          )}
-        >
-          Research
-          {research && (
-            <span className="ml-1.5 font-mono text-[10px] normal-case tracking-normal text-ink-400">
-              {research.date.slice(5)}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab("assist")}
-          className={clsx(
-            "h-12 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors border-b-2 inline-flex items-center gap-1.5",
-            tab === "assist"
-              ? "text-ink-900 border-ink-900"
-              : "text-ink-400 border-transparent hover:text-ink-700"
-          )}
-        >
-          AI assist
-        </button>
+    <aside className="hidden md:flex w-[400px] shrink-0 border-l border-line-subtle flex-col bg-bg-base">
+      <header className="h-12 px-4 border-b border-line-subtle flex items-center gap-3">
+        {(["research", "assist", "image"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={clsx(
+              "h-12 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors border-b-2 capitalize",
+              tab === t
+                ? "text-ink-900 border-ink-900"
+                : "text-ink-400 border-transparent hover:text-ink-700"
+            )}
+          >
+            {t === "assist" ? "AI assist" : t}
+            {t === "research" && research && (
+              <span className="ml-1.5 font-mono text-[10px] normal-case tracking-normal text-ink-400">
+                {research.date.slice(5)}
+              </span>
+            )}
+          </button>
+        ))}
         {tab === "research" && (
           <a
             href="/research"
@@ -473,8 +469,10 @@ function RightRail({
               </p>
             )}
           </div>
-        ) : (
+        ) : tab === "assist" ? (
           <AssistPanel body={body} platform={platform} onApply={onApply} />
+        ) : (
+          <ImagePanel body={body} platform={platform} draftFilename={draftFilename} />
         )}
       </div>
     </aside>

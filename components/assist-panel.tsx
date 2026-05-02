@@ -16,6 +16,7 @@ type ResultState =
   | { status: "err"; error: string };
 
 const ACTIONS = [
+  { preset: "humanize", label: "Humanize", icon: Wand2 },
   { preset: "punchier", label: "Make punchier", icon: Sparkles },
   { preset: "shorter", label: "Shorten", icon: Scissors },
   { preset: "longer", label: "Expand", icon: Maximize2 },
