@@ -26,10 +26,10 @@ export default async function QueuePage() {
       {queue.length === 0 ? (
         <Empty>Queue is empty.</Empty>
       ) : (
-        <div className="border border-border-subtle rounded-md overflow-hidden">
+        <div className="border border-line-subtle rounded-md overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-navy-mid">
-              <tr className="text-text-gray text-[11px] uppercase tracking-label">
+            <thead className="bg-bg-subtle">
+              <tr className="text-ink-500 text-[11px] uppercase tracking-label">
                 <th className="text-left font-semibold px-4 py-3">Platform</th>
                 <th className="text-left font-semibold px-4 py-3">Status</th>
                 <th className="text-left font-semibold px-4 py-3">Scheduled</th>
@@ -43,8 +43,8 @@ export default async function QueuePage() {
                 <tr
                   key={d.filename}
                   className={
-                    "h-10 border-t border-border-subtle hover:bg-navy-elev2 " +
-                    (idx % 2 ? "bg-navy-mid" : "bg-navy-card")
+                    "h-10 border-t border-line-subtle hover:bg-bg-subtle " +
+                    (idx % 2 ? "bg-bg-subtle" : "bg-bg-surface")
                   }
                 >
                   <td className="px-4">
@@ -53,22 +53,22 @@ export default async function QueuePage() {
                   <td className="px-4">
                     <StatusBadge status={d.status} />
                   </td>
-                  <td className="px-4 font-mono text-text-gray">
-                    {d.scheduled_at || <span className="text-text-dim italic">—</span>}
+                  <td className="px-4 font-mono text-ink-500">
+                    {d.scheduled_at || <span className="text-ink-400 italic">—</span>}
                   </td>
-                  <td className="px-4 text-text-white font-mono text-xs">
+                  <td className="px-4 text-ink-900 font-mono text-xs">
                     {d.slug || d.filename.replace(/\.md$/, "")}
                   </td>
-                  <td className="px-4 text-text-gray text-xs truncate max-w-md">
+                  <td className="px-4 text-ink-500 text-xs truncate max-w-md">
                     {d.body.replace(/\n/g, " ").slice(0, 90)}
                     {d.body.length > 90 ? "…" : ""}
                   </td>
-                  <td className="px-4 font-mono text-xs text-text-gray">
+                  <td className="px-4 font-mono text-xs text-ink-500">
                     {d.platform === "linkedin"
                       ? "—"
                       : d.auto_post
-                      ? <span className="text-cyan">on</span>
-                      : <span className="text-text-dim">off</span>}
+                      ? <span className="text-brand">on</span>
+                      : <span className="text-ink-400">off</span>}
                   </td>
                 </tr>
               ))}

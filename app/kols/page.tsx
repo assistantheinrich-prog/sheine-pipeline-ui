@@ -26,7 +26,7 @@ export default async function KolsPage() {
       </header>
       {handles.length === 0 ? (
         <Empty>
-          List is empty. Add via <code className="font-mono text-cyan">social-kol-draft add &lt;handle&gt;</code>.
+          List is empty. Add via <code className="font-mono text-brand">social-kol-draft add &lt;handle&gt;</code>.
         </Empty>
       ) : (
         <div className="space-y-2 max-w-3xl">
@@ -34,16 +34,16 @@ export default async function KolsPage() {
             const handle = typeof entry === "string" ? entry : entry.handle;
             const note = typeof entry === "object" ? entry.note : undefined;
             return (
-              <div key={i} className="bg-navy-card border border-border-subtle rounded-md p-4 flex items-baseline gap-4">
+              <div key={i} className="bg-bg-surface border border-line-subtle rounded-md p-4 flex items-baseline gap-4">
                 <a
                   href={`https://x.com/${handle}`}
                   target="_blank"
                   rel="noopener"
-                  className="font-mono text-text-white hover:text-cyan"
+                  className="font-mono text-ink-900 hover:text-brand"
                 >
                   @{handle}
                 </a>
-                {note && <span className="text-text-gray text-xs">{note}</span>}
+                {note && <span className="text-ink-500 text-xs">{note}</span>}
               </div>
             );
           })}

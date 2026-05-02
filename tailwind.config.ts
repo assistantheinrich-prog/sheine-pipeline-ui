@@ -1,37 +1,37 @@
 import type { Config } from "tailwindcss";
 
-// Tokens come from sheine-design/templates/sheine-app.DESIGN.md.
-// Editing here? Edit DESIGN.md too.
+// Light palette. Vercel/Linear/shadcn-influenced.
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        navy: {
-          dark: "#020c1b",
-          mid: "#0a192f",
-          card: "#112240",
-          elev2: "#1a2c4e",
+        bg: {
+          base: "#fafafa",        // page canvas
+          surface: "#ffffff",     // cards, inputs
+          subtle: "#f4f4f5",      // alternating rows, hover
+          accent: "#f0f9ff",      // active selection / cyan tint
         },
-        text: {
-          white: "#e6f1ff",
-          gray: "#8892b0",
-          dim: "#495670",
+        ink: {
+          900: "#09090b",         // primary text
+          700: "#27272a",         // secondary heading
+          500: "#52525b",         // body secondary
+          400: "#71717a",         // muted
+          300: "#a1a1aa",         // disabled / dim
         },
-        gold: {
-          DEFAULT: "#FFD700",
-          soft: "#d4af37",
+        line: {
+          subtle: "#e4e4e7",
+          strong: "#d4d4d8",
         },
-        cyan: { DEFAULT: "#64ffda" },
-        rose: { DEFAULT: "#ff6b6b" },
-        amber: { DEFAULT: "#ffb86c" },
-        border: {
-          subtle: "#1c2942",
-          strong: "#2c3f6d",
+        brand: {
+          DEFAULT: "#2563eb",     // primary accent (blue)
+          soft:    "#3b82f6",
         },
+        success: { DEFAULT: "#16a34a", soft: "#22c55e" },
+        warn:    { DEFAULT: "#d97706", soft: "#f59e0b" },
+        danger:  { DEFAULT: "#dc2626", soft: "#ef4444" },
       },
       fontFamily: {
-        cinzel: ['Cinzel', 'ui-serif', 'Georgia', 'serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
@@ -41,8 +41,10 @@ const config: Config = {
         'md': '8px',
       },
       letterSpacing: {
-        'cinzel-tight': '-0.01em',
         'label': '0.06em',
+      },
+      boxShadow: {
+        'card': '0 1px 2px 0 rgb(0 0 0 / 0.04)',
       },
     },
   },

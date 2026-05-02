@@ -13,14 +13,14 @@ export default async function ResearchPage() {
         <H1 className="mt-1">{notes.length} note{notes.length === 1 ? "" : "s"}</H1>
       </header>
       {notes.length === 0 ? (
-        <Empty>No research notes yet. Run <code className="font-mono text-cyan">research-run</code>.</Empty>
+        <Empty>No research notes yet. Run <code className="font-mono text-brand">research-run</code>.</Empty>
       ) : (
         <div className="space-y-2">
           {notes.map((n) => (
             <Link key={n.date} href={`/research/${n.date}` as any}>
-              <Card className="hover:bg-navy-elev2 cursor-pointer flex items-center justify-between">
-                <span className="font-mono text-text-white">{n.date}</span>
-                <span className="text-text-dim text-xs font-mono">{n.filename}</span>
+              <Card className="hover:bg-bg-subtle cursor-pointer flex items-center justify-between">
+                <span className="font-mono text-ink-900">{n.date}</span>
+                <span className="text-ink-400 text-xs font-mono">{n.filename}</span>
               </Card>
             </Link>
           ))}

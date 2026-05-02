@@ -17,17 +17,17 @@ export default async function LibraryPage() {
       ) : (
         <div className="space-y-3">
           {posted.map((d) => (
-            <div key={d.filename} className="border border-border-subtle rounded-md p-4 bg-navy-card">
+            <div key={d.filename} className="border border-line-subtle rounded-md p-4 bg-bg-surface">
               <div className="flex items-center gap-2 mb-2">
                 <PlatformBadge platform={d.platform} />
-                <span className="text-xs font-mono text-text-dim">{d.posted_at}</span>
+                <span className="text-xs font-mono text-ink-400">{d.posted_at}</span>
                 {d.posted_url && (
-                  <a href={d.posted_url} target="_blank" rel="noopener" className="text-cyan text-xs hover:underline ml-auto">
+                  <a href={d.posted_url} target="_blank" rel="noopener" className="text-brand text-xs hover:underline ml-auto">
                     open
                   </a>
                 )}
               </div>
-              <p className="text-sm whitespace-pre-line text-text-white">{d.body}</p>
+              <p className="text-sm whitespace-pre-line text-ink-900">{d.body}</p>
             </div>
           ))}
         </div>

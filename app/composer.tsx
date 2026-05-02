@@ -61,38 +61,38 @@ export function Composer({ drafts, research }: Props) {
   return (
     <div className="grid grid-cols-2 h-screen">
       {/* RESEARCH NOTE — left */}
-      <section className="overflow-y-auto px-10 py-8 border-r border-border-subtle">
+      <section className="overflow-y-auto px-10 py-8 border-r border-line-subtle">
         <header className="flex items-baseline justify-between mb-6">
           <div>
             <Label>Research note</Label>
-            <h1 className="font-cinzel font-semibold text-[1.5rem] tracking-cinzel-tight text-text-white mt-1">
+            <h1 className="font-sans font-semibold text-[1.5rem] tracking-tight text-ink-900 mt-1">
               {research ? research.date : "No notes yet"}
             </h1>
           </div>
           <a
             href="/research"
-            className="text-cyan text-sm hover:underline inline-flex items-center gap-1"
+            className="text-brand text-sm hover:underline inline-flex items-center gap-1"
           >
             Browse all <ExternalLink size={12} />
           </a>
         </header>
         {research ? (
-          <article className="prose prose-invert max-w-none text-sm text-text-white font-sans whitespace-pre-wrap leading-relaxed">
+          <article className="prose prose-invert max-w-none text-sm text-ink-900 font-sans whitespace-pre-wrap leading-relaxed">
             {stripFrontmatter(research.body)}
           </article>
         ) : (
           <Empty>
-            Run <code className="font-mono text-cyan">research-run</code> to generate today's note.
+            Run <code className="font-mono text-brand">research-run</code> to generate today's note.
           </Empty>
         )}
       </section>
 
       {/* DRAFT CANVAS — right */}
-      <section className="overflow-y-auto px-10 py-8 sticky top-0 bg-navy-dark">
+      <section className="overflow-y-auto px-10 py-8 sticky top-0 bg-bg-base">
         <header className="flex items-baseline justify-between mb-6">
           <div>
             <Label>Draft canvas</Label>
-            <h2 className="font-cinzel font-semibold text-[1.5rem] tracking-cinzel-tight text-text-white mt-1">
+            <h2 className="font-sans font-semibold text-[1.5rem] tracking-tight text-ink-900 mt-1">
               {selected ? selected.filename.replace(/\.md$/, "") : "Nothing to review"}
             </h2>
           </div>
@@ -114,11 +114,11 @@ export function Composer({ drafts, research }: Props) {
                 className={
                   "h-7 px-2 rounded-xs text-xs border transition-colors " +
                   (selected?.filename === d.filename
-                    ? "bg-navy-elev2 border-border-strong text-text-white"
-                    : "bg-transparent border-border-subtle text-text-gray hover:border-border-strong")
+                    ? "bg-bg-subtle border-line-strong text-ink-900"
+                    : "bg-transparent border-line-subtle text-ink-500 hover:border-line-strong")
                 }
               >
-                <span className="font-mono mr-1.5 text-text-dim">
+                <span className="font-mono mr-1.5 text-ink-400">
                   {d.platform === "x" ? "X" : "LI"}
                 </span>
                 {d.slug || d.filename.slice(0, 24)}
@@ -130,12 +130,12 @@ export function Composer({ drafts, research }: Props) {
         {selected ? (
           <>
             {selected.based_on && (
-              <p className="text-xs text-text-dim mb-3 italic">
+              <p className="text-xs text-ink-400 mb-3 italic">
                 Based on: {selected.based_on}
               </p>
             )}
             {selected.reply_to_id && (
-              <p className="text-xs text-cyan mb-3">
+              <p className="text-xs text-brand mb-3">
                 ↳ Reply to{" "}
                 <a
                   href={`https://x.com/${selected.reply_to_handle || "i"}/status/${selected.reply_to_id}`}
@@ -148,7 +148,7 @@ export function Composer({ drafts, research }: Props) {
               </p>
             )}
             <textarea
-              className="w-full min-h-[280px] bg-navy-mid border border-border-subtle rounded-sm p-4 text-text-white font-sans text-sm leading-relaxed focus:border-cyan focus:outline-none focus:ring-2 focus:ring-cyan/30 resize-y"
+              className="w-full min-h-[280px] bg-bg-subtle border border-line-subtle rounded-sm p-4 text-ink-900 font-sans text-sm leading-relaxed focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 resize-y"
               value={body}
               onChange={(e) => {
                 setBody(e.target.value);
@@ -156,25 +156,25 @@ export function Composer({ drafts, research }: Props) {
               }}
               placeholder="Write your post here…"
             />
-            <div className="flex items-center justify-between mt-2 text-xs text-text-dim">
+            <div className="flex items-center justify-between mt-2 text-xs text-ink-400">
               <span>
                 {selected.platform === "x" && (
-                  <span className={xOver ? "text-rose font-semibold" : ""}>
+                  <span className={xOver ? "text-danger font-semibold" : ""}>
                     {xCount} / {X_LIMIT}
                   </span>
                 )}
                 {selected.platform === "linkedin" && (
                   <span>{wordCount(body)} words · {body.length} chars</span>
                 )}
-                {savedAt && <span className="ml-3 text-cyan">saved {timeAgo(savedAt)}</span>}
+                {savedAt && <span className="ml-3 text-brand">saved {timeAgo(savedAt)}</span>}
               </span>
               {selected.scheduled_at ? (
-                <span className="inline-flex items-center gap-1 text-text-gray">
+                <span className="inline-flex items-center gap-1 text-ink-500">
                   <CalendarClock size={12} />
                   {selected.scheduled_at}
                 </span>
               ) : (
-                <span className="text-text-dim italic">no schedule</span>
+                <span className="text-ink-400 italic">no schedule</span>
               )}
             </div>
 
@@ -250,7 +250,7 @@ function VoiceLints({ body }: { body: string }) {
   return (
     <Card className="mt-4 bg-rose/5 border-rose/30">
       <Label>Voice lints</Label>
-      <ul className="mt-2 text-xs text-rose space-y-1">
+      <ul className="mt-2 text-xs text-danger space-y-1">
         {hasEmoji && <li>Contains emoji — voice rule says no emojis.</li>}
         {hits.map((w) => (
           <li key={w}>Banned word: <span className="font-mono">{w}</span></li>

@@ -13,7 +13,7 @@ export default async function ResearchNotePage({ params }: { params: { date: str
         <Label>Research note</Label>
         <H1 className="mt-1 font-mono text-[1.5rem]">{note.date}</H1>
       </header>
-      <article className="text-sm whitespace-pre-wrap leading-relaxed text-text-white">
+      <article className="text-sm whitespace-pre-wrap leading-relaxed text-ink-900">
         {stripFrontmatter(note.body)}
       </article>
     </div>

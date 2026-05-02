@@ -10,7 +10,7 @@ export default function AnalyticsPage() {
         <H1 className="mt-1">Engagement over time</H1>
       </header>
       <Empty>
-        Coming on Day 2 — reads <code className="font-mono text-cyan">social-posts.sqlite</code>.
+        Coming on Day 2 — reads <code className="font-mono text-brand">social-posts.sqlite</code>.
       </Empty>
     </div>
   );
