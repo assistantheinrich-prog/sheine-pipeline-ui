@@ -78,7 +78,6 @@ export function ComposerCanvas({
 
   const xCount = body.length;
   const xOver = selected.platform === "x" && xCount > X_LIMIT;
-  const xPct = Math.min(100, (xCount / X_LIMIT) * 100);
 
   // Detect an X URL inside the body — offer to convert into a quote tweet.
   const detectedXUrl = selected.platform === "x" && !selected.quote_tweet_url

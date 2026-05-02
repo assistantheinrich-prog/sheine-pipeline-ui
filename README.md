@@ -120,8 +120,8 @@ app/
 
 components/
   ui.tsx              Card / Button / StatusBadge / PlatformBadge / H1/H2 / Empty
-  sidebar.tsx         (unused — kept for legacy reference)
   page-header.tsx     Slim breadcrumb header for non-composer pages
+  image-panel.tsx     Image generation right-rail content
   markdown.tsx        Styled react-markdown renderer
   composer-canvas.tsx Center composer card with toolbar + live preview
   modals.tsx          Modal wrapper + ScheduleModal + NewDraftModal
@@ -141,7 +141,7 @@ DESIGN.md             Light theme, decoupled from SHeine brand
 
 - Drafts: `~/Documents/ObsidianVault/00-memory/inbox/social-drafts/*.md`
 - Research notes: `~/Documents/ObsidianVault/00-memory/inbox/research-notes/*.md`
-- Engagement log: `~/Documents/ObsidianVault/00-memory/system/social-posts.sqlite`
+- Engagement log: `~/.sheine/data/social-posts.sqlite`
 - KOL list: `~/agent-harness/tools/social-pipeline/kol/kol-list.json`
 
 The UI never owns its own data — it's a view layer over the same files
