@@ -1,11 +1,11 @@
 import { listDrafts } from "@/lib/drafts";
-import { Empty, H1, Label, PlatformBadge, StatusBadge } from "@/components/ui";
+import { Empty, PlatformBadge, StatusBadge } from "@/components/ui";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
 export default async function QueuePage() {
   const all = await listDrafts();
-  // Queue = approved or pending with a scheduled_at, plus all approved.
   const queue = all
     .filter((d) => d.status === "approved" || d.status === "pending")
     .sort((a, b) => {
@@ -15,67 +15,65 @@ export default async function QueuePage() {
     });
 
   return (
-    <div className="px-10 py-8">
-      <header className="mb-8">
-        <Label>Queue</Label>
-        <H1 className="mt-1">
-          {queue.length} draft{queue.length === 1 ? "" : "s"} pending or approved
-        </H1>
-      </header>
-
-      {queue.length === 0 ? (
-        <Empty>Queue is empty.</Empty>
-      ) : (
-        <div className="border border-line-subtle rounded-md overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-bg-subtle">
-              <tr className="text-ink-500 text-[11px] uppercase tracking-label">
-                <th className="text-left font-semibold px-4 py-3">Platform</th>
-                <th className="text-left font-semibold px-4 py-3">Status</th>
-                <th className="text-left font-semibold px-4 py-3">Scheduled</th>
-                <th className="text-left font-semibold px-4 py-3">Slug</th>
-                <th className="text-left font-semibold px-4 py-3">Preview</th>
-                <th className="text-left font-semibold px-4 py-3">Auto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queue.map((d, idx) => (
-                <tr
-                  key={d.filename}
-                  className={
-                    "h-10 border-t border-line-subtle hover:bg-bg-subtle " +
-                    (idx % 2 ? "bg-bg-subtle" : "bg-bg-surface")
-                  }
-                >
-                  <td className="px-4">
-                    <PlatformBadge platform={d.platform} />
-                  </td>
-                  <td className="px-4">
-                    <StatusBadge status={d.status} />
-                  </td>
-                  <td className="px-4 font-mono text-ink-500">
-                    {d.scheduled_at || <span className="text-ink-400 italic">—</span>}
-                  </td>
-                  <td className="px-4 text-ink-900 font-mono text-xs">
-                    {d.slug || d.filename.replace(/\.md$/, "")}
-                  </td>
-                  <td className="px-4 text-ink-500 text-xs truncate max-w-md">
-                    {d.body.replace(/\n/g, " ").slice(0, 90)}
-                    {d.body.length > 90 ? "…" : ""}
-                  </td>
-                  <td className="px-4 font-mono text-xs text-ink-500">
-                    {d.platform === "linkedin"
-                      ? "—"
-                      : d.auto_post
-                      ? <span className="text-brand">on</span>
-                      : <span className="text-ink-400">off</span>}
-                  </td>
+    <div>
+      <PageHeader
+        label="Queue"
+        title={`${queue.length} draft${queue.length === 1 ? "" : "s"}`}
+      />
+      <div className="px-6 py-6 max-w-6xl mx-auto">
+        {queue.length === 0 ? (
+          <Empty>Queue is empty.</Empty>
+        ) : (
+          <div className="border border-line-subtle rounded-md overflow-hidden bg-bg-surface shadow-card">
+            <table className="w-full text-[13px]">
+              <thead className="bg-bg-subtle">
+                <tr className="text-ink-500 text-[10.5px] uppercase tracking-label">
+                  <th className="text-left font-semibold px-4 py-2.5">Platform</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Status</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Scheduled</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Slug</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Preview</th>
+                  <th className="text-left font-semibold px-4 py-2.5">Auto</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {queue.map((d) => (
+                  <tr
+                    key={d.filename}
+                    className="h-10 border-t border-line-subtle hover:bg-bg-subtle"
+                  >
+                    <td className="px-4">
+                      <PlatformBadge platform={d.platform} />
+                    </td>
+                    <td className="px-4">
+                      <StatusBadge status={d.status} />
+                    </td>
+                    <td className="px-4 font-mono text-ink-500">
+                      {d.scheduled_at || (
+                        <span className="text-ink-400 italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 text-ink-900 font-mono text-[12px]">
+                      {d.slug || d.filename.replace(/\.md$/, "")}
+                    </td>
+                    <td className="px-4 text-ink-500 text-[12.5px] truncate max-w-md">
+                      {d.body.replace(/\n/g, " ").slice(0, 90)}
+                      {d.body.length > 90 ? "…" : ""}
+                    </td>
+                    <td className="px-4 font-mono text-[12px]">
+                      {d.platform === "linkedin"
+                        ? "—"
+                        : d.auto_post
+                        ? <span className="text-success">on</span>
+                        : <span className="text-ink-400">off</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

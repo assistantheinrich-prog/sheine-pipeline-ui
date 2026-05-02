@@ -1,31 +1,37 @@
 import Link from "next/link";
 import { listResearchNotes } from "@/lib/research";
-import { Card, Empty, H1, Label } from "@/components/ui";
+import { Empty } from "@/components/ui";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
 export default async function ResearchPage() {
   const notes = await listResearchNotes();
   return (
-    <div className="px-10 py-8">
-      <header className="mb-8">
-        <Label>Research</Label>
-        <H1 className="mt-1">{notes.length} note{notes.length === 1 ? "" : "s"}</H1>
-      </header>
-      {notes.length === 0 ? (
-        <Empty>No research notes yet. Run <code className="font-mono text-brand">research-run</code>.</Empty>
-      ) : (
-        <div className="space-y-2">
-          {notes.map((n) => (
-            <Link key={n.date} href={`/research/${n.date}` as any}>
-              <Card className="hover:bg-bg-subtle cursor-pointer flex items-center justify-between">
-                <span className="font-mono text-ink-900">{n.date}</span>
-                <span className="text-ink-400 text-xs font-mono">{n.filename}</span>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+    <div>
+      <PageHeader label="Research" title={`${notes.length} note${notes.length === 1 ? "" : "s"}`} />
+      <div className="px-6 py-6 max-w-3xl mx-auto">
+        {notes.length === 0 ? (
+          <Empty>
+            No research notes yet. Run{" "}
+            <code className="font-mono text-brand">research-run</code>.
+          </Empty>
+        ) : (
+          <ul className="space-y-1.5">
+            {notes.map((n) => (
+              <li key={n.date}>
+                <Link
+                  href={`/research/${n.date}` as any}
+                  className="flex items-center justify-between px-3 h-10 rounded-sm bg-bg-surface border border-line-subtle hover:border-line-strong transition-colors"
+                >
+                  <span className="font-mono text-[13.5px] text-ink-900">{n.date}</span>
+                  <span className="text-ink-400 text-[11.5px] font-mono">{n.filename}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

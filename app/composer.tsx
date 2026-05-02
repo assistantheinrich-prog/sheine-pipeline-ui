@@ -3,26 +3,61 @@
 import { useMemo, useState } from "react";
 import type { Draft } from "@/lib/drafts";
 import type { ResearchNote } from "@/lib/research";
-import { Button, Card, Empty, Label, PlatformBadge, StatusBadge } from "@/components/ui";
-import { CalendarClock, Save, ExternalLink } from "lucide-react";
+import { ComposerCanvas } from "@/components/composer-canvas";
+import { MarkdownView } from "@/components/markdown";
+import {
+  Plus,
+  Search,
+  PanelLeftClose,
+  PanelRightClose,
+  Calendar,
+  BarChart3,
+  Plug,
+  HelpCircle,
+  Settings as SettingsIcon,
+  ChevronDown,
+} from "lucide-react";
+import clsx from "clsx";
 
-type Props = {
+type Tab = "drafts" | "scheduled" | "posted";
+
+export function Composer({
+  drafts,
+  research,
+}: {
   drafts: Draft[];
   research: ResearchNote | null;
-};
+}) {
+  const [tab, setTab] = useState<Tab>("drafts");
+  const [filter, setFilter] = useState("");
 
-const X_LIMIT = 280;
+  const tabbed = useMemo(() => {
+    if (tab === "drafts")
+      return drafts.filter(
+        (d) => d.status === "pending" || d.status === "approved"
+      );
+    if (tab === "scheduled")
+      return drafts.filter((d) => d.status === "approved" && d.scheduled_at);
+    return drafts.filter((d) => d.status === "posted");
+  }, [drafts, tab]);
 
-export function Composer({ drafts, research }: Props) {
-  const reviewable = useMemo(
-    () => drafts.filter((d) => d.status === "pending" || d.status === "approved"),
-    [drafts]
-  );
-  const [selected, setSelected] = useState<Draft | null>(reviewable[0] || null);
+  const visible = useMemo(() => {
+    const f = filter.trim().toLowerCase();
+    if (!f) return tabbed;
+    return tabbed.filter(
+      (d) =>
+        d.body.toLowerCase().includes(f) ||
+        d.slug?.toLowerCase().includes(f) ||
+        d.filename.toLowerCase().includes(f)
+    );
+  }, [tabbed, filter]);
+
+  const [selected, setSelected] = useState<Draft | null>(visible[0] || null);
   const [body, setBody] = useState(selected?.body || "");
   const [status, setStatus] = useState(selected?.status || "pending");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [showResearch, setShowResearch] = useState(true);
 
   function pick(d: Draft) {
     setSelected(d);
@@ -55,223 +90,244 @@ export function Composer({ drafts, research }: Props) {
     }
   }
 
-  const xCount = body.length;
-  const xOver = selected?.platform === "x" && xCount > X_LIMIT;
-
   return (
-    <div className="grid grid-cols-2 h-screen">
-      {/* RESEARCH NOTE — left */}
-      <section className="overflow-y-auto px-10 py-8 border-r border-line-subtle">
-        <header className="flex items-baseline justify-between mb-6">
-          <div>
-            <Label>Research note</Label>
-            <h1 className="font-sans font-semibold text-[1.5rem] tracking-tight text-ink-900 mt-1">
-              {research ? research.date : "No notes yet"}
-            </h1>
-          </div>
-          <a
-            href="/research"
-            className="text-brand text-sm hover:underline inline-flex items-center gap-1"
-          >
-            Browse all <ExternalLink size={12} />
-          </a>
-        </header>
-        {research ? (
-          <article className="prose prose-invert max-w-none text-sm text-ink-900 font-sans whitespace-pre-wrap leading-relaxed">
-            {stripFrontmatter(research.body)}
-          </article>
-        ) : (
-          <Empty>
-            Run <code className="font-mono text-brand">research-run</code> to generate today's note.
-          </Empty>
-        )}
-      </section>
+    <div className="flex h-screen min-h-0">
+      {/* Drafts column — Typefully's left panel */}
+      <aside className="w-[280px] shrink-0 border-r border-line-subtle bg-bg-base flex flex-col">
+        <div className="px-3 pt-4 pb-2 flex items-center gap-2">
+          <button className="flex-1 flex items-center gap-2 h-9 px-2 rounded-sm text-[13px] text-ink-700 hover:bg-bg-subtle transition-colors">
+            <span className="w-6 h-6 rounded-full bg-ink-900 text-white inline-flex items-center justify-center text-[10px] font-semibold">SH</span>
+            <span className="font-medium truncate">Sebastian Heine</span>
+            <ChevronDown size={14} className="ml-auto text-ink-400" />
+          </button>
+          <button className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle">
+            <Search size={14} />
+          </button>
+        </div>
 
-      {/* DRAFT CANVAS — right */}
-      <section className="overflow-y-auto px-10 py-8 sticky top-0 bg-bg-base">
-        <header className="flex items-baseline justify-between mb-6">
-          <div>
-            <Label>Draft canvas</Label>
-            <h2 className="font-sans font-semibold text-[1.5rem] tracking-tight text-ink-900 mt-1">
-              {selected ? selected.filename.replace(/\.md$/, "") : "Nothing to review"}
-            </h2>
-          </div>
-          {selected && (
-            <div className="flex items-center gap-2">
-              <PlatformBadge platform={selected.platform} />
-              <StatusBadge status={status} />
-            </div>
-          )}
-        </header>
-
-        {/* Draft picker */}
-        {reviewable.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-1">
-            {reviewable.slice(0, 12).map((d) => (
+        {/* Tabs */}
+        <div className="px-3 border-b border-line-subtle">
+          <div className="flex gap-4">
+            {(["drafts", "scheduled", "posted"] as Tab[]).map((t) => (
               <button
-                key={d.filename}
-                onClick={() => pick(d)}
-                className={
-                  "h-7 px-2 rounded-xs text-xs border transition-colors " +
-                  (selected?.filename === d.filename
-                    ? "bg-bg-subtle border-line-strong text-ink-900"
-                    : "bg-transparent border-line-subtle text-ink-500 hover:border-line-strong")
-                }
+                key={t}
+                onClick={() => setTab(t)}
+                className={clsx(
+                  "h-10 -mb-px text-[12.5px] font-medium uppercase tracking-label transition-colors capitalize border-b-2",
+                  tab === t
+                    ? "text-ink-900 border-ink-900"
+                    : "text-ink-400 border-transparent hover:text-ink-700"
+                )}
               >
-                <span className="font-mono mr-1.5 text-ink-400">
-                  {d.platform === "x" ? "X" : "LI"}
-                </span>
-                {d.slug || d.filename.slice(0, 24)}
+                {t}
               </button>
             ))}
           </div>
-        )}
+        </div>
 
-        {selected ? (
-          <>
-            {selected.based_on && (
-              <p className="text-xs text-ink-400 mb-3 italic">
-                Based on: {selected.based_on}
-              </p>
-            )}
-            {selected.reply_to_id && (
-              <p className="text-xs text-brand mb-3">
-                ↳ Reply to{" "}
-                <a
-                  href={`https://x.com/${selected.reply_to_handle || "i"}/status/${selected.reply_to_id}`}
-                  target="_blank"
-                  rel="noopener"
-                  className="font-mono hover:underline"
-                >
-                  @{selected.reply_to_handle || "?"}/{selected.reply_to_id}
-                </a>
-              </p>
-            )}
-            <textarea
-              className="w-full min-h-[280px] bg-bg-subtle border border-line-subtle rounded-sm p-4 text-ink-900 font-sans text-sm leading-relaxed focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 resize-y"
-              value={body}
-              onChange={(e) => {
-                setBody(e.target.value);
-                setSavedAt(null);
-              }}
-              placeholder="Write your post here…"
-            />
-            <div className="flex items-center justify-between mt-2 text-xs text-ink-400">
-              <span>
-                {selected.platform === "x" && (
-                  <span className={xOver ? "text-danger font-semibold" : ""}>
-                    {xCount} / {X_LIMIT}
-                  </span>
-                )}
-                {selected.platform === "linkedin" && (
-                  <span>{wordCount(body)} words · {body.length} chars</span>
-                )}
-                {savedAt && <span className="ml-3 text-brand">saved {timeAgo(savedAt)}</span>}
-              </span>
-              {selected.scheduled_at ? (
-                <span className="inline-flex items-center gap-1 text-ink-500">
-                  <CalendarClock size={12} />
-                  {selected.scheduled_at}
-                </span>
-              ) : (
-                <span className="text-ink-400 italic">no schedule</span>
-              )}
+        {/* New draft + filter */}
+        <div className="px-3 py-3 space-y-2">
+          <a
+            href="/inbox"
+            className="flex items-center justify-between w-full h-9 px-2.5 rounded-sm bg-bg-surface border border-line-subtle text-[13px] text-ink-700 hover:border-line-strong transition-colors group"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Plus size={14} />
+              New draft
+            </span>
+            <ChevronDown size={14} className="text-ink-400 -rotate-90" />
+          </a>
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter drafts…"
+            className="w-full h-8 px-2.5 rounded-sm bg-bg-base border border-line-subtle text-[12.5px] text-ink-900 placeholder:text-ink-300 focus:outline-none focus:border-line-strong"
+          />
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {visible.length === 0 ? (
+            <div className="text-center text-[12.5px] text-ink-400 italic py-8 px-3">
+              {tab === "drafts" ? "No drafts in this tab." : `No ${tab} posts.`}
             </div>
+          ) : (
+            <ul className="space-y-1">
+              {visible.map((d) => {
+                const isActive = selected?.filename === d.filename;
+                return (
+                  <li key={d.filename}>
+                    <button
+                      onClick={() => pick(d)}
+                      className={clsx(
+                        "w-full text-left px-2.5 py-2.5 rounded-sm border transition-colors",
+                        isActive
+                          ? "bg-bg-surface border-line-strong shadow-card"
+                          : "bg-transparent border-transparent hover:bg-bg-subtle"
+                      )}
+                    >
+                      <p className="text-[12.5px] text-ink-900 line-clamp-3 leading-snug">
+                        {d.body || (
+                          <span className="italic text-ink-400">
+                            (empty draft)
+                          </span>
+                        )}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-[10.5px]">
+                        <span className="font-mono text-ink-400 lowercase">
+                          {d.platform === "x" ? "X" : "linkedin"}
+                          {d.reply_to_id && " · reply"}
+                        </span>
+                        <span
+                          className={clsx(
+                            "uppercase tracking-label font-semibold",
+                            d.status === "approved"
+                              ? "text-success"
+                              : d.status === "pending"
+                              ? "text-warn"
+                              : d.status === "posted"
+                              ? "text-brand"
+                              : "text-ink-400"
+                          )}
+                        >
+                          {d.status}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
-            <VoiceLints body={body} />
+        {/* Bottom secondary nav (Typefully pattern) */}
+        <div className="border-t border-line-subtle px-2 py-2 space-y-px">
+          <NavLink href="/queue" icon={Calendar} label="Queue" />
+          <NavLink href="/analytics" icon={BarChart3} label="Analytics" />
+          <NavLink href="/kols" icon={Plug} label="KOLs" />
+          <NavLink href="/settings" icon={SettingsIcon} label="Settings" />
+          <NavLink href="/research" icon={HelpCircle} label="Research" />
+        </div>
+      </aside>
 
-            <div className="flex items-center gap-2 mt-6">
-              <Button onClick={() => save()} disabled={saving} variant="secondary">
-                <Save size={14} /> Save edits
-              </Button>
-              {status !== "approved" ? (
-                <Button
-                  onClick={() => {
-                    setStatus("approved");
-                    save({ newStatus: "approved" });
-                  }}
-                  disabled={saving || xOver}
-                  variant="primary"
-                >
-                  Approve
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => {
-                    setStatus("pending");
-                    save({ newStatus: "pending" });
-                  }}
-                  disabled={saving}
-                >
-                  Un-approve
-                </Button>
+      {/* Center: composer */}
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+        {/* Top bar */}
+        <header className="h-12 px-4 border-b border-line-subtle flex items-center gap-2 bg-bg-base">
+          {selected && (
+            <span
+              className={clsx(
+                "inline-flex items-center justify-center w-6 h-6 rounded-xs text-[11px] font-semibold border",
+                selected.platform === "x"
+                  ? "bg-ink-900 text-white border-ink-900"
+                  : "bg-[#0a66c2] text-white border-[#0a66c2]"
               )}
-              <Button
-                onClick={() => {
-                  if (confirm("Reject this draft?")) {
-                    setStatus("rejected");
-                    save({ newStatus: "rejected" });
-                  }
-                }}
+            >
+              {selected.platform === "x" ? "X" : "in"}
+            </span>
+          )}
+          <span className="font-mono text-[12.5px] text-ink-700 truncate">
+            {selected ? selected.filename.replace(/\.md$/, "") : "Pipeline composer"}
+          </span>
+          <div className="flex-1" />
+          <button
+            onClick={() => setShowResearch((v) => !v)}
+            title={showResearch ? "Hide research" : "Show research"}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-sm text-ink-500 hover:bg-bg-subtle"
+          >
+            {showResearch ? <PanelRightClose size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+          {selected && (
+            <>
+              <button
+                onClick={() => save({ newStatus: status === "approved" ? "pending" : "approved" })}
                 disabled={saving}
-                variant="destructive"
+                className="h-8 px-3 rounded-sm bg-warn text-white text-[12.5px] font-semibold hover:bg-warn-soft disabled:opacity-50 inline-flex items-center gap-1.5"
               >
-                Reject
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Empty>No reviewable drafts. Generate via `research-draft` or write one with `social-draft`.</Empty>
-        )}
-      </section>
+                {status === "approved" ? "Un-approve" : "Schedule"}
+              </button>
+              <button
+                onClick={() => save()}
+                disabled={saving || !body.trim()}
+                className="h-8 px-3 rounded-sm bg-brand text-white text-[12.5px] font-semibold hover:bg-brand-soft disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </>
+          )}
+        </header>
+
+        <ComposerCanvas
+          selected={selected}
+          reviewable={visible}
+          onPick={pick}
+          body={body}
+          setBody={(s) => {
+            setBody(s);
+            setSavedAt(null);
+          }}
+          status={status}
+          setStatus={setStatus}
+          saving={saving}
+          savedAt={savedAt}
+          save={save}
+        />
+      </main>
+
+      {/* Right: research note (collapsible) */}
+      {showResearch && (
+        <aside className="w-[380px] shrink-0 border-l border-line-subtle flex flex-col bg-bg-base">
+          <header className="h-12 px-5 border-b border-line-subtle flex items-baseline gap-3">
+            <span className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold">
+              Research
+            </span>
+            <span className="font-mono text-[12.5px] text-ink-700">
+              {research ? research.date : "no notes"}
+            </span>
+            <a
+              href="/research"
+              className="ml-auto text-[12px] text-brand hover:underline"
+            >
+              all
+            </a>
+          </header>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {research ? (
+              <MarkdownView body={stripFrontmatter(research.body)} />
+            ) : (
+              <p className="text-[13px] text-ink-400 italic">
+                Run <code className="font-mono text-brand">research-run</code> to
+                generate today's note.
+              </p>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
 
-const BANNED = [
-  "delve",
-  "leverage",
-  "navigate",
-  "robust",
-  "seamless",
-  "tapestry",
-  "intricate",
-  "dive into",
-  "unlock",
-  "game-changer",
-  "supercharged",
-];
-
-function VoiceLints({ body }: { body: string }) {
-  const lower = body.toLowerCase();
-  const hits = BANNED.filter((w) => lower.includes(w));
-  const hasEmoji = /\p{Extended_Pictographic}/u.test(body);
-  if (!hits.length && !hasEmoji) return null;
+function NavLink({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: any;
+  label: string;
+}) {
   return (
-    <Card className="mt-4 bg-rose/5 border-rose/30">
-      <Label>Voice lints</Label>
-      <ul className="mt-2 text-xs text-danger space-y-1">
-        {hasEmoji && <li>Contains emoji — voice rule says no emojis.</li>}
-        {hits.map((w) => (
-          <li key={w}>Banned word: <span className="font-mono">{w}</span></li>
-        ))}
-      </ul>
-    </Card>
+    <a
+      href={href}
+      className="flex items-center gap-2.5 h-8 px-2.5 rounded-sm text-[12.5px] text-ink-500 hover:bg-bg-subtle hover:text-ink-900 transition-colors"
+    >
+      <Icon size={14} strokeWidth={1.75} />
+      {label}
+    </a>
   );
 }
 
 function stripFrontmatter(s: string): string {
   return s.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, "");
-}
-
-function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 5_000) return "just now";
-  if (ms < 60_000) return `${Math.floor(ms / 1000)}s ago`;
-  if (ms < 3600_000) return `${Math.floor(ms / 60_000)}m ago`;
-  return new Date(iso).toLocaleTimeString();
 }

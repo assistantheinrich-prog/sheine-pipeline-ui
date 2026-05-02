@@ -1,10 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Sidebar } from "@/components/sidebar";
 
 export const metadata: Metadata = {
-  title: "SHeine Pipeline",
-  description: "Local social pipeline for SHeine Brief + sheine.ai",
+  title: "Pipeline",
+  description: "Local social pipeline for X + LinkedIn drafts",
 };
 
 export default function RootLayout({
@@ -13,12 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" >
+    <html lang="en">
       <body className="bg-bg-base text-ink-900 min-h-screen">
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 min-h-screen">{children}</main>
-        </div>
+        {children}
       </body>
     </html>
   );
