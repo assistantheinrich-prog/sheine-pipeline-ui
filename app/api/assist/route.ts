@@ -45,6 +45,11 @@ function humanizeFlags(text: string): Promise<{ result: string; flags: string[] 
   });
 }
 
+// Banned words/hedges/transitions are duplicated in prompt text below because
+// LLM instructions need natural language. Canonical list: humanize.py BANNED_WORDS
+// (~/agent-harness/tools/humanize/humanize.py). The UI highlight subset lives in
+// components/composer-canvas.tsx. If you change any of these, sync all three
+// and update 00-memory/feedback/feedback_voice_rules_2026-05-02.md.
 const PRESETS: Record<string, string> = {
   humanize: `Make this read like a human wrote it, not an AI. Apply Sebastian's voice rules + Dickie Bush's read-aloud test:
 

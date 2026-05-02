@@ -21,6 +21,10 @@ import {
 import type { Draft } from "@/lib/drafts";
 
 const X_LIMIT = 280;
+// UI highlight subset only. Canonical banned list lives in
+// ~/agent-harness/tools/humanize/humanize.py (BANNED_WORDS). If this list
+// changes, mirror app/api/assist/route.ts and that file too. See
+// 00-memory/feedback/feedback_voice_rules_2026-05-02.md.
 const BANNED = [
   "delve",
   "leverage",
