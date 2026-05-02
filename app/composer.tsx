@@ -6,6 +6,7 @@ import type { ResearchNote } from "@/lib/research";
 import { ComposerCanvas } from "@/components/composer-canvas";
 import { MarkdownView } from "@/components/markdown";
 import { NewDraftModal, ScheduleModal } from "@/components/modals";
+import { AssistPanel } from "@/components/assist-panel";
 import {
   Plus,
   Search,
@@ -80,6 +81,32 @@ export function Composer({
     window.addEventListener("resize", adjust);
     return () => window.removeEventListener("resize", adjust);
   }, []);
+
+  // Keyboard shortcuts.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      // Skip when typing in inputs/textareas (except for ⌘S which we want
+      // global to save the current draft).
+      const target = e.target as HTMLElement | null;
+      const inField = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        if (selected) save();
+        return;
+      }
+      if (inField) return;
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); setOpenNew(true); return; }
+      if (e.key === "k" || e.key === "K") { e.preventDefault(); setShowDrafts((v) => !v); return; }
+      if (e.key === "." ) { e.preventDefault(); setShowResearch((v) => !v); return; }
+      if (e.key === "1") { e.preventDefault(); setTab("drafts"); return; }
+      if (e.key === "2") { e.preventDefault(); setTab("scheduled"); return; }
+      if (e.key === "3") { e.preventDefault(); setTab("posted"); return; }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, body]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pick(d: Draft) {
     setSelected(d);
@@ -355,34 +382,17 @@ export function Composer({
         />
       </main>
 
-      {/* Right: research note */}
+      {/* Right: research / assist tabs */}
       {showResearch && (
-        <aside className="hidden md:flex w-[380px] shrink-0 border-l border-line-subtle flex-col bg-bg-base">
-          <header className="h-12 px-5 border-b border-line-subtle flex items-baseline gap-3">
-            <span className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold">
-              Research
-            </span>
-            <span className="font-mono text-[12.5px] text-ink-700">
-              {research ? research.date : "no notes"}
-            </span>
-            <a
-              href="/research"
-              className="ml-auto text-[12px] text-brand hover:underline"
-            >
-              all
-            </a>
-          </header>
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {research ? (
-              <MarkdownView body={stripFrontmatter(research.body)} />
-            ) : (
-              <p className="text-[13px] text-ink-400 italic">
-                Run <code className="font-mono text-brand">research-run</code> to
-                generate today's note.
-              </p>
-            )}
-          </div>
-        </aside>
+        <RightRail
+          research={research}
+          body={body}
+          platform={selected?.platform || "x"}
+          onApply={(s) => {
+            setBody(s);
+            setSavedAt(null);
+          }}
+        />
       )}
 
       <ScheduleModal
@@ -397,6 +407,77 @@ export function Composer({
         onCreate={onCreated}
       />
     </div>
+  );
+}
+
+function RightRail({
+  research,
+  body,
+  platform,
+  onApply,
+}: {
+  research: ResearchNote | null;
+  body: string;
+  platform: string;
+  onApply: (s: string) => void;
+}) {
+  const [tab, setTab] = useState<"research" | "assist">("research");
+  return (
+    <aside className="hidden md:flex w-[380px] shrink-0 border-l border-line-subtle flex-col bg-bg-base">
+      <header className="h-12 px-5 border-b border-line-subtle flex items-center gap-4">
+        <button
+          onClick={() => setTab("research")}
+          className={clsx(
+            "h-12 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors border-b-2",
+            tab === "research"
+              ? "text-ink-900 border-ink-900"
+              : "text-ink-400 border-transparent hover:text-ink-700"
+          )}
+        >
+          Research
+          {research && (
+            <span className="ml-1.5 font-mono text-[10px] normal-case tracking-normal text-ink-400">
+              {research.date.slice(5)}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab("assist")}
+          className={clsx(
+            "h-12 -mb-px text-[11.5px] font-semibold uppercase tracking-label transition-colors border-b-2 inline-flex items-center gap-1.5",
+            tab === "assist"
+              ? "text-ink-900 border-ink-900"
+              : "text-ink-400 border-transparent hover:text-ink-700"
+          )}
+        >
+          AI assist
+        </button>
+        {tab === "research" && (
+          <a
+            href="/research"
+            className="ml-auto text-[12px] text-brand hover:underline"
+          >
+            all
+          </a>
+        )}
+      </header>
+      <div className="flex-1 overflow-y-auto">
+        {tab === "research" ? (
+          <div className="px-5 py-4">
+            {research ? (
+              <MarkdownView body={stripFrontmatter(research.body)} />
+            ) : (
+              <p className="text-[13px] text-ink-400 italic">
+                Run <code className="font-mono text-brand">research-run</code> to
+                generate today's note.
+              </p>
+            )}
+          </div>
+        ) : (
+          <AssistPanel body={body} platform={platform} onApply={onApply} />
+        )}
+      </div>
+    </aside>
   );
 }
 
