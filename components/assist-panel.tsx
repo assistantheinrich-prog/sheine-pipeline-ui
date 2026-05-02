@@ -12,7 +12,14 @@ type Props = {
 type ResultState =
   | { status: "idle" }
   | { status: "running" }
-  | { status: "ok"; output?: string; variants?: string[]; preset: string }
+  | {
+      status: "ok";
+      output?: string;
+      variants?: string[];
+      preset: string;
+      first_pass_flags?: string[];
+      remaining_flags?: string[];
+    }
   | { status: "err"; error: string };
 
 const ACTIONS = [
@@ -50,6 +57,8 @@ export function AssistPanel({ body, platform, onApply }: Props) {
         output: data.output,
         variants: data.variants,
         preset: payload.preset || "custom",
+        first_pass_flags: data.first_pass_flags,
+        remaining_flags: data.remaining_flags,
       });
     } catch (e: any) {
       setState({ status: "err", error: e?.message || String(e) });
@@ -107,12 +116,31 @@ export function AssistPanel({ body, platform, onApply }: Props) {
       )}
       {state.status === "ok" && state.output && (
         <div className="space-y-2">
-          <div className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold">
-            {state.preset === "voicelint" ? "Voice lint result" : "Suggested rewrite"}
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] uppercase tracking-label text-ink-400 font-semibold">
+              {state.preset === "voicelint" ? "Voice lint result" : "Suggested rewrite"}
+            </span>
+            {state.preset === "humanize" && state.first_pass_flags && state.first_pass_flags.length > 0 && (
+              <span className="text-[10px] uppercase tracking-label text-success font-semibold">
+                {state.first_pass_flags.length} flags fixed
+              </span>
+            )}
           </div>
           <div className="bg-bg-base border border-line-subtle rounded-sm p-3 text-[13px] text-ink-900 whitespace-pre-wrap">
             {state.output}
           </div>
+          {state.preset === "humanize" && state.remaining_flags && state.remaining_flags.length > 0 && (
+            <div className="bg-warn/5 border border-warn/30 rounded-xs px-2 py-1.5">
+              <div className="text-[10.5px] uppercase tracking-label text-warn font-semibold mb-1">
+                Remaining lints
+              </div>
+              <ul className="text-[11.5px] text-ink-700 space-y-0.5">
+                {state.remaining_flags.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {state.preset !== "voicelint" && (
             <div className="flex items-center gap-2">
               <button
@@ -121,12 +149,7 @@ export function AssistPanel({ body, platform, onApply }: Props) {
               >
                 Apply
               </button>
-              <button
-                onClick={() => navigator.clipboard?.writeText(state.output!)}
-                className="h-7 px-2.5 rounded-xs border border-line-strong text-[12px] text-ink-700 hover:bg-bg-subtle"
-              >
-                Copy
-              </button>
+              <CopyButton text={state.output!} />
             </div>
           )}
         </div>
@@ -149,17 +172,53 @@ export function AssistPanel({ body, platform, onApply }: Props) {
                 >
                   Apply
                 </button>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(v)}
-                  className="h-7 px-2.5 rounded-xs border border-line-strong text-[11.5px] text-ink-700 hover:bg-bg-subtle"
-                >
-                  Copy
-                </button>
+                <CopyButton text={v} small />
               </div>
             </div>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function CopyButton({ text, small }: { text: string; small?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  async function go() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (e) {
+      // Fallback: synthetic textarea select-and-copy.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      } catch {
+        alert("Copy failed. Browser blocked clipboard access.");
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+  }
+  return (
+    <button
+      onClick={go}
+      className={
+        (small
+          ? "h-7 px-2.5 text-[11.5px] "
+          : "h-7 px-2.5 text-[12px] ") +
+        "rounded-xs border border-line-strong text-ink-700 hover:bg-bg-subtle inline-flex items-center gap-1"
+      }
+    >
+      {copied ? "✓ Copied" : "Copy"}
+    </button>
   );
 }
