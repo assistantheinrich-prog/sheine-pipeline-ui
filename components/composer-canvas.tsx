@@ -21,11 +21,11 @@ import {
 import type { Draft } from "@/lib/drafts";
 
 const X_LIMIT = 280;
-// UI highlight subset only. Canonical banned list lives in
-// ~/agent-harness/tools/humanize/humanize.py (BANNED_WORDS). If this list
-// changes, mirror app/api/assist/route.ts and that file too. See
-// 00-memory/feedback/feedback_voice_rules_2026-05-02.md.
-const BANNED = [
+// UI highlight subset. Canonical list lives in
+// ~/agent-harness/tools/humanize/banned-words.json (ui_highlight_subset).
+// We fetch /api/voice-rules at mount and update; this fallback is used
+// only if the fetch fails.
+const BANNED_FALLBACK = [
   "delve",
   "leverage",
   "navigate",
@@ -37,6 +37,15 @@ const BANNED = [
   "unlock",
   "game-changer",
   "supercharged",
+  "ecosystem",
+  "holistic",
+  "paradigm",
+  "synergy",
+  "innovative",
+  "innovation",
+  "transformative",
+  "empower",
+  "streamline",
 ];
 
 type Props = {
@@ -67,6 +76,19 @@ export function ComposerCanvas({
   save,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
+  const [banned, setBanned] = useState<string[]>(BANNED_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/voice-rules")
+      .then((r) => r.ok ? r.json() : null)
+      .then((doc) => {
+        if (!cancelled && doc?.ui_highlight_subset && Array.isArray(doc.ui_highlight_subset)) {
+          setBanned(doc.ui_highlight_subset);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   if (!selected) {
     return (
@@ -320,7 +342,7 @@ export function ComposerCanvas({
         )}
 
         {/* Voice lints */}
-        <VoiceLints body={body} />
+        <VoiceLints body={body} banned={banned} />
 
         {/* Action bar */}
         <div className="mt-6 flex items-center gap-2">
@@ -541,9 +563,9 @@ function LinkedInPreview({ body }: { body: string }) {
   );
 }
 
-function VoiceLints({ body }: { body: string }) {
+function VoiceLints({ body, banned }: { body: string; banned: string[] }) {
   const lower = body.toLowerCase();
-  const hits = BANNED.filter((w) => lower.includes(w));
+  const hits = banned.filter((w) => lower.includes(w));
   const hasEmoji = /\p{Extended_Pictographic}/u.test(body);
   if (!hits.length && !hasEmoji) return null;
   return (
