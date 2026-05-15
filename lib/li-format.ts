@@ -66,6 +66,49 @@ export function toPlain(text: string): string {
     .join("");
 }
 
+// Strip leading list markers — •, -, *, →, |, "1." style — so re-applying a
+// list transform is idempotent. Sebastian's voice rules ban → and | as bullets,
+// so we strip them defensively even though we never emit them.
+const LIST_MARKER_RE = /^\s*(?:[•\-*→|—]|\d+\.)\s+/;
+
+// Convert each non-empty line in `lines` to a • bullet.
+export function toBulletList(lines: string[]): string[] {
+  return lines.map((ln) => {
+    if (!ln.trim()) return ln;
+    return "• " + ln.replace(LIST_MARKER_RE, "");
+  });
+}
+
+// Re-number non-empty lines starting at 1. Empty lines preserved as-is.
+export function toNumberedList(lines: string[]): string[] {
+  let n = 0;
+  return lines.map((ln) => {
+    if (!ln.trim()) return ln;
+    n += 1;
+    return `${n}. ` + ln.replace(LIST_MARKER_RE, "");
+  });
+}
+
+// Strip common markdown syntax so the text pastes cleanly into LinkedIn.
+// Italic regexes are intentionally simple and may over-match in pathological
+// cases; that's an acceptable trade for a paste-ready output.
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s{0,3}>\s?/gm, "")
+    .replace(/^\s*(?:[-*_]\s*){3,}\s*$/gm, "")
+    .replace(/\*\*\*([^*]+)\*\*\*/g, "$1")
+    .replace(/___([^_]+)___/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1$2")
+    .replace(/(^|[^_\w])_([^_\n]+)_(?!_)/g, "$1$2")
+    .replace(/~~([^~]+)~~/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]*\]\(([^)]+)\)/g, "($1)")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)");
+}
+
 // Apply a transform to the substring [start, end) of `full`. Returns the new
 // full string + new selection bounds (which may have shifted because Unicode
 // glyphs are surrogate pairs).

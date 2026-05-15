@@ -21,6 +21,7 @@ import {
   Menu,
   BookOpen,
   CalendarClock,
+  Type,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -307,6 +308,7 @@ export function Composer({
           <NavLink href="/analytics" icon={BarChart3} label="Analytics" />
           <NavLink href="/kols" icon={Plug} label="KOLs" />
           <NavLink href="/research" icon={BookOpen} label="Research" />
+          <NavLink href="/format" icon={Type} label="Formatter" />
           <NavLink href="/settings" icon={SettingsIcon} label="Settings" />
         </div>
       </aside>
