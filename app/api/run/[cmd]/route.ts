@@ -16,7 +16,7 @@ const ALLOWED: Record<string, { bin: string; argv?: string[]; timeoutMs: number 
   },
   "research-draft": {
     bin: path.join(os.homedir(), "agent-harness/bin/research-draft"),
-    timeoutMs: 240_000,
+    timeoutMs: 480_000,
   },
   "social-due": {
     bin: path.join(os.homedir(), "agent-harness/bin/social-due"),
