@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function QueuePage() {
   const all = await listDrafts();
   const queue = all
-    .filter((d) => d.status === "approved" || d.status === "pending")
+    .filter((d) => d.status === "approved" || d.status === "pending" || d.status === "ready")
     .sort((a, b) => {
       const ax = a.scheduled_at || "9999";
       const bx = b.scheduled_at || "9999";

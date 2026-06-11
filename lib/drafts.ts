@@ -11,6 +11,8 @@ export type Draft = {
   status: "pending" | "approved" | "posted" | "rejected" | "draft" | string;
   scheduled_at?: string | null;
   auto_post?: boolean;
+  image?: string | null;
+  first_comment?: string | null;
   reply_to_id?: string | null;
   reply_to_handle?: string | null;
   quote_tweet_url?: string | null;
@@ -51,6 +53,8 @@ export async function listDrafts(): Promise<Draft[]> {
           status: (d.status || "pending").toLowerCase(),
           scheduled_at: d.scheduled_at || null,
           auto_post: !!d.auto_post,
+          image: d.image || null,
+          first_comment: d.first_comment || null,
           reply_to_id: d.reply_to_id ? String(d.reply_to_id) : null,
           reply_to_handle: d.reply_to_handle || null,
           based_on: d.based_on || null,
@@ -88,6 +92,8 @@ export async function readDraft(filename: string): Promise<Draft | null> {
       status: (d.status || "pending").toLowerCase(),
       scheduled_at: d.scheduled_at || null,
       auto_post: !!d.auto_post,
+      image: d.image || null,
+      first_comment: d.first_comment || null,
       reply_to_id: d.reply_to_id ? String(d.reply_to_id) : null,
       reply_to_handle: d.reply_to_handle || null,
       quote_tweet_url: d.quote_tweet_url || null,

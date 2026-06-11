@@ -59,6 +59,7 @@ export function StatusBadge({ status }: { status: string }) {
   const s = (status || "").toLowerCase();
   const style = {
     pending:  "text-warn bg-warn/10 border-warn/30",
+    ready:    "text-brand bg-brand/10 border-brand/30",
     approved: "text-success bg-success/10 border-success/30",
     posted:   "text-brand bg-brand/10 border-brand/30",
     rejected: "text-danger bg-danger/10 border-danger/30",

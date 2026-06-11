@@ -10,6 +10,9 @@ import {
   Save,
   CalendarClock,
   Quote,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button, Empty, PlatformBadge, StatusBadge } from "@/components/ui";
 import {
@@ -77,6 +80,43 @@ export function ComposerCanvas({
 }: Props) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [banned, setBanned] = useState<string[]>(BANNED_FALLBACK);
+  const [review, setReview] = useState<{
+    blocked?: boolean;
+    gate?: { failures?: any[]; warnings?: any[] };
+    telegram?: { ok?: boolean; detail?: string };
+  } | null>(null);
+  const [sending, setSending] = useState(false);
+
+  async function sendToReview(filename: string) {
+    setSending(true);
+    setReview(null);
+    try {
+      // Persist current edits, then attempt the gated `ready` transition.
+      await fetch(`/api/drafts/${filename}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const r = await fetch(`/api/drafts/${filename}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready", body }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 422) {
+        setReview({ blocked: true, gate: data.gate });
+      } else if (r.ok) {
+        setStatus("ready");
+        setReview({ gate: data.gate, telegram: data.telegram });
+      } else {
+        setReview({ blocked: true, gate: { failures: [{ label: data.error || `error ${r.status}` }] } });
+      }
+    } catch (e: any) {
+      setReview({ blocked: true, gate: { failures: [{ label: String(e) }] } });
+    } finally {
+      setSending(false);
+    }
+  }
   useEffect(() => {
     let cancelled = false;
     fetch("/api/voice-rules")
@@ -344,11 +384,71 @@ export function ComposerCanvas({
         {/* Voice lints */}
         <VoiceLints body={body} banned={banned} />
 
+        {/* Gate / Telegram result */}
+        {review && (
+          <div
+            className={`mt-5 rounded-md border p-3 text-[12.5px] ${
+              review.blocked
+                ? "border-danger/40 bg-danger/5"
+                : "border-success/40 bg-success/5"
+            }`}
+          >
+            {review.blocked ? (
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={15} className="text-danger mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-danger">Blocked — fix before review:</div>
+                  <ul className="list-disc ml-4 mt-1 text-ink-700">
+                    {(review.gate?.failures || []).map((f: any, i: number) => (
+                      <li key={i}>
+                        {f.label}
+                        {f.detail ? <span className="text-ink-400"> — {f.detail}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 size={15} className="text-success mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold text-success">
+                    Sent to Telegram for approval{review.telegram?.ok === false ? " (telegram send failed)" : ""}.
+                  </div>
+                  {review.telegram?.ok === false && (
+                    <div className="text-ink-500 mt-0.5 font-mono text-[11px]">{review.telegram?.detail}</div>
+                  )}
+                  {(review.gate?.warnings || []).length > 0 && (
+                    <ul className="list-disc ml-4 mt-1 text-ink-500">
+                      {(review.gate?.warnings || []).map((w: any, i: number) => (
+                        <li key={i}>
+                          warning: {w.label}
+                          {w.detail ? <span className="text-ink-400"> — {w.detail}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action bar */}
         <div className="mt-6 flex items-center gap-2">
           <Button onClick={() => save()} disabled={saving} variant="secondary" className="!h-10">
             <Save size={14} /> Save edits
           </Button>
+          {status !== "approved" && status !== "posted" && (
+            <Button
+              onClick={() => sendToReview(selected.filename)}
+              disabled={sending || saving || xOver}
+              variant="primary"
+              className="!h-10 !px-4"
+            >
+              <Send size={14} /> {sending ? "Sending…" : "Send to review"}
+            </Button>
+          )}
           {status !== "approved" ? (
             <Button
               onClick={() => {
