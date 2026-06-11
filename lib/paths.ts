@@ -11,7 +11,9 @@ export const VAULT = path.join(HOME, "Documents/ObsidianVault");
 export const DRAFTS_DIR =
   process.env.SOCIAL_DRAFTS_DIR ||
   path.join(VAULT, "00-memory/inbox/social-drafts");
-export const RESEARCH_DIR = path.join(VAULT, "00-memory/inbox/research-notes");
+export const RESEARCH_DIR =
+  process.env.SOCIAL_RESEARCH_DIR ||
+  path.join(VAULT, "00-memory/inbox/research-notes");
 // Engagement log moved 2026-05-02 to keep the canonical markdown memory
 // tree binary-free. See engagement_log.py docstring.
 export const POSTS_DB = path.join(HOME, ".sheine/data/social-posts.sqlite");

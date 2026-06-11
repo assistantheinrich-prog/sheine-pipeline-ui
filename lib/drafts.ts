@@ -28,6 +28,15 @@ export type Draft = {
   raw: string;
 };
 
+// gray-matter/yaml parses an unquoted ISO datetime (scheduled_at:
+// 2026-06-12T12:00:00+04:00) into a JS Date. Downstream code treats these as
+// strings (sort .localeCompare, Date.parse). Normalize to an ISO string.
+function asStr(v: unknown): string | null {
+  if (v == null || v === "") return null;
+  if (v instanceof Date) return v.toISOString();
+  return String(v);
+}
+
 export async function listDrafts(): Promise<Draft[]> {
   let entries: string[] = [];
   try {
@@ -51,7 +60,7 @@ export async function listDrafts(): Promise<Draft[]> {
           type: d.type,
           platform: (d.platform || "").toLowerCase() || "?",
           status: (d.status || "pending").toLowerCase(),
-          scheduled_at: d.scheduled_at || null,
+          scheduled_at: asStr(d.scheduled_at),
           auto_post: !!d.auto_post,
           image: d.image || null,
           first_comment: d.first_comment || null,
@@ -90,7 +99,7 @@ export async function readDraft(filename: string): Promise<Draft | null> {
       type: d.type,
       platform: (d.platform || "").toLowerCase() || "?",
       status: (d.status || "pending").toLowerCase(),
-      scheduled_at: d.scheduled_at || null,
+      scheduled_at: asStr(d.scheduled_at),
       auto_post: !!d.auto_post,
       image: d.image || null,
       first_comment: d.first_comment || null,
