@@ -33,15 +33,20 @@ export async function GET() {
       inWindow(d.scheduled_at, now, weekAhead)
   ).length;
 
-  // X posts logged to the engagement DB in the last 7 days.
-  const xPosts7d = recentPosts("x", 7).length;
+  // X posts logged to the engagement DB in the last 7 days. NOT added to
+  // posts_shipped_7d — a draft fired via the loop is BOTH a status=posted draft
+  // AND an engagement row, so summing double-counts. `status=posted` drafts are
+  // the single source of truth for shipped (covers X + LinkedIn); this is an
+  // informational cross-check only.
+  const xPostsLogged7d = recentPosts("x", 7).length;
 
   const li = linkedinSummary(7);
 
   return NextResponse.json({
     generated_at: new Date(now).toISOString(),
     consistency: {
-      posts_shipped_7d: shippedDrafts7d + xPosts7d,
+      posts_shipped_7d: shippedDrafts7d,
+      x_posts_logged_7d: xPostsLogged7d,
       scheduled_next_7d: scheduledNext7d,
       target_min_per_week: 3,
     },

@@ -86,19 +86,31 @@ function stripNoise(text: string): string {
     .replace(/(^|\s)#[\p{L}\p{N}_]+/gu, " ");
 }
 
+// Title-Case words that are NOT named entities — weekdays, months, and common
+// capitalised words — so "Monday and Tuesday" doesn't pass the ≥2 entity gate.
+const STOP_TITLES = new Set([
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+  "January", "February", "March", "April", "May", "June", "July", "August",
+  "September", "October", "November", "December",
+  "The", "This", "That", "These", "Those", "There", "Then", "They", "We", "It",
+  "But", "And", "Why", "What", "When", "Where", "How", "New", "Today", "Now",
+]);
+
 export function countNamedEntities(body: string): string[] {
   const text = stripNoise(body);
   const found = new Set<string>();
+  // Known entities matched CASE-SENSITIVELY (they're proper-cased; this stops
+  // "SEC" matching "sec", "MAS" matching "mas", etc.).
   for (const e of KNOWN_ENTITIES) {
-    const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(e)}(?![\\p{L}\\p{N}])`, "iu");
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(e)}(?![\\p{L}\\p{N}])`, "u");
     if (re.test(text)) found.add(e);
   }
-  // ALL-CAPS acronyms (KYC, AML, AI, EU, UAE, ...).
+  // ALL-CAPS acronyms (KYC, AML, AI, EU, UAE, FATF, ...).
   for (const m of text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)) found.add(m[0]);
   // Title-Case proper nouns NOT at the start of a sentence (so "An AI" doesn't
-  // count "An", but "Emirates flight" counts "Emirates").
+  // count "An", but "Emirates flight" counts "Emirates"). Skip the stop-list.
   for (const m of text.matchAll(/(?<=[a-z,]\s)([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g)) {
-    found.add(m[1]);
+    if (!STOP_TITLES.has(m[1])) found.add(m[1]);
   }
   return [...found];
 }
@@ -109,7 +121,9 @@ const REFRAME_PATTERNS: RegExp[] = [
   /\bit'?s not\b[^.?!]*[.?!]\s*it'?s\b/gi,
   /\bit is not\b[^.?!]*[.?!]\s*it is\b/gi,
   /\bisn'?t\b[^.?!]*[,.?!]\s*it'?s\b/gi,
-  /\bnot\b[^.?!]{1,40}\bbut\b/gi,
+  // "not just/only/merely X but Y" — the antithesis cadence, not plain negation
+  // ("we did not file the report but the regulator understood" must NOT match).
+  /\bnot (just|only|merely|simply|about)\b[^.?!]{1,40}\bbut\b/gi,
 ];
 
 function countReframes(body: string): number {
