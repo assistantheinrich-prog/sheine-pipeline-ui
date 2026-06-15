@@ -22,6 +22,7 @@ import {
   BookOpen,
   CalendarClock,
   Type,
+  Lightbulb,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -304,6 +305,7 @@ export function Composer({
 
         {/* Bottom secondary nav */}
         <div className="border-t border-line-subtle px-2 py-2 space-y-px">
+          <NavLink href="/ideas" icon={Lightbulb} label="Ideas" />
           <NavLink href="/queue" icon={Calendar} label="Queue" />
           <NavLink href="/analytics" icon={BarChart3} label="Analytics" />
           <NavLink href="/kols" icon={Plug} label="KOLs" />

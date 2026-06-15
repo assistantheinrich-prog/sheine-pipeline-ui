@@ -17,6 +17,9 @@ export const RESEARCH_DIR =
 // Engagement log moved 2026-05-02 to keep the canonical markdown memory
 // tree binary-free. See engagement_log.py docstring.
 export const POSTS_DB = path.join(HOME, ".sheine/data/social-posts.sqlite");
+// Regulatory-scanner output (read-only here) — source for the Ideas feed.
+export const AGENCY_DB =
+  process.env.SOCIAL_AGENCY_DB || path.join(HOME, ".sheine/data/agency.db");
 export const KOL_LIST = path.join(
   HOME,
   "agent-harness/tools/social-pipeline/kol/kol-list.json"

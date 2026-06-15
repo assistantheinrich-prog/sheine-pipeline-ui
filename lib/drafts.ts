@@ -66,6 +66,7 @@ export async function listDrafts(): Promise<Draft[]> {
           first_comment: d.first_comment || null,
           reply_to_id: d.reply_to_id ? String(d.reply_to_id) : null,
           reply_to_handle: d.reply_to_handle || null,
+          source_url: d.source_url || null,
           based_on: d.based_on || null,
           posted_at: d.posted_at || null,
           posted_url: d.posted_url || null,
