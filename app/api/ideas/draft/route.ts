@@ -29,6 +29,8 @@ function callClaude(prompt: string, timeout = 90_000): Promise<string> {
       clearTimeout(t);
       reject(e);
     });
+    // Close stdin so claude (no TTY under launchd) doesn't block waiting for it.
+    c.stdin.end();
   });
 }
 

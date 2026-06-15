@@ -51,6 +51,8 @@ function callClaude(prompt: string, timeout = 200_000): Promise<string> {
     c.stderr.on("data", (b) => (err += b));
     c.on("close", (code) => { clearTimeout(t); code === 0 ? resolve(out) : reject(new Error(err || `exit ${code}`)); });
     c.on("error", (e) => { clearTimeout(t); reject(e); });
+    // Close stdin so claude (no TTY under launchd) doesn't block waiting for it.
+    c.stdin.end();
   });
 }
 
