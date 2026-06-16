@@ -113,6 +113,27 @@ scheduled in the next 5 days.
 followers / impressions / top posts. `GET /api/weekly-numbers` feeds the Sunday
 digest (posts shipped vs planned, queue depth, follower count).
 
+## M5-primary drafting (Option 2 — when the mini's claude is logged out)
+
+The mini's `claude` is not authenticated for headless/launchd use ("Not logged
+in"), so the dashboard's in-browser generation (`/api/ideas/draft`, `/api/assist`)
+won't run on the mini. While that's the case, draft on the **M5** (where claude
+works) and let new drafts flow to the mini queue:
+
+- **`social-reg-draft --list [N]`** — recent crypto/compliance reg hits (from the
+  mini's `agency.db` over SSH) with ids.
+- **`social-reg-draft <id> [--x]`** — generate a LinkedIn (or X) draft from that
+  hit with local claude, write it to the M5 vault, and push to the mini queue.
+- **`social-draft-push`** — one-way `rsync --ignore-existing` of new M5 drafts →
+  mini `~/.sheine/social-drafts`. Runs every 15 min via launchd
+  `ai.sheine.social-draft-push` (M5), and is called automatically after a draft
+  is generated. `--ignore-existing` means the mini owns status once a draft lands
+  there (approve/schedule/posted is never clobbered by a re-push); only brand-new
+  drafts cross over. Edit-after-push happens on the mini dashboard, not the M5.
+
+To retire Option 2: log into Claude Code on the mini, confirm `claude -p` works
+headless there, and the dashboard's own "Draft this"/assist buttons light up.
+
 ## Harness files (separate from this repo, under ~/agent-harness)
 
 `tools/social-pipeline/telegram/approve.py` (send/poll/apply/create-topic),
