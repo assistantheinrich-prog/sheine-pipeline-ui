@@ -13,9 +13,9 @@ const IMAGES_DIR = path.join(
   "Documents/ObsidianVault/00-memory/inbox/social-drafts/images"
 );
 
-// Imagen via Vertex AI — uses ADC (`gcloud auth application-default login`).
-// We shell out to `gcloud auth print-access-token` rather than wiring the
-// Google Auth lib through the Next bundle.
+// Gemini 3 Pro Image ("Nano Banana Pro", gemini-3-pro-image) via Vertex AI.
+// Auth: shell out to `gcloud auth print-access-token` (active gcloud account),
+// rather than wiring the Google Auth lib through the Next bundle.
 async function vertexAccessToken(): Promise<string> {
   return new Promise((resolve, reject) => {
     const c = spawn("gcloud", ["auth", "print-access-token"], { env: { ...process.env, NODE_NO_WARNINGS: "1" } });
@@ -28,40 +28,54 @@ async function vertexAccessToken(): Promise<string> {
   });
 }
 
-async function generateImagen(prompt: string, aspect: "1:1" | "16:9" | "9:16" = "1:1"): Promise<{ b64: string; model: string }> {
+async function generateImage(prompt: string, aspect: "1:1" | "16:9" | "9:16" = "1:1"): Promise<{ b64: string; model: string }> {
   loadEnvOnce();
   const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
   if (!project) throw new Error("GOOGLE_CLOUD_PROJECT not set");
 
-  const model = "imagen-4.0-generate-001";
-  const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${model}:predict`;
+  const model = "gemini-3-pro-image";
+  // Nano Banana Pro is served ONLY on the global endpoint (404s on regional
+  // endpoints), so pin global regardless of GOOGLE_CLOUD_LOCATION.
+  const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
 
   const token = await vertexAccessToken();
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const body = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseModalities: ["TEXT", "IMAGE"],
+      imageConfig: { aspectRatio: aspect },
     },
-    body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: aspect,
-        safetySetting: "block_only_high",
-        personGeneration: "allow_adult",
-      },
-    }),
   });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`vertex ${res.status}: ${t.slice(0, 400)}`);
+
+  // Nano Banana Pro's global endpoint is rate-limit sensitive and returns an
+  // HTML 404/429 page under throttle. Retry transient failures with exponential
+  // backoff; do NOT retry a genuine JSON error (real 404 model-not-found, 400, 401).
+  const maxAttempts = 4;
+  let lastErr = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const parts = data?.candidates?.[0]?.content?.parts ?? [];
+      const b64 = parts.find((p: any) => p?.inlineData?.data)?.inlineData?.data;
+      if (b64) return { b64, model };
+      lastErr = "no image in response: " + JSON.stringify(data).slice(0, 300);
+    } else {
+      const t = await res.text();
+      lastErr = `vertex ${res.status}: ${t.slice(0, 300)}`;
+      const htmlThrottle = res.status === 404 && t.trimStart().startsWith("<");
+      const transient = res.status === 429 || res.status === 408 || res.status >= 500 || htmlThrottle;
+      if (!transient) throw new Error(lastErr); // genuine error — fail fast
+    }
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 800 * 2 ** (attempt - 1) + Math.floor(Math.random() * 400)));
+    }
   }
-  const data = await res.json();
-  const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-  if (!b64) throw new Error("no image in response: " + JSON.stringify(data).slice(0, 300));
-  return { b64, model };
+  throw new Error(`image gen failed after ${maxAttempts} attempts — ${lastErr}`);
 }
 
 export async function POST(req: NextRequest) {
@@ -80,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { b64, model } = await generateImagen(prompt, aspect || "1:1");
+    const { b64, model } = await generateImage(prompt, aspect || "1:1");
     await fs.mkdir(IMAGES_DIR, { recursive: true });
     const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const slugBase = (draftFilename || "image").replace(/\.md$/, "").replace(/[^a-z0-9-]+/gi, "-");
