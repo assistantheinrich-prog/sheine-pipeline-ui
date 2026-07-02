@@ -80,6 +80,13 @@ export async function PATCH(req: NextRequest, ctx: { params: { filename: string 
     });
     if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
     const telegram = await sendToTelegram(ctx.params.filename);
+    if (!telegram.ok) {
+      // Don't strand the draft at `ready` — the daily digest only re-pushes
+      // `pending` and social-due only reads `approved`, so a failed send would
+      // sit at `ready` forever with nothing retrying it. Revert to `pending`.
+      const reverted = await writeDraft(ctx.params.filename, { status: "pending" });
+      return NextResponse.json({ draft: reverted ?? updated, gate, telegram });
+    }
     return NextResponse.json({ draft: updated, gate, telegram });
   }
 

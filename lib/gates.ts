@@ -35,7 +35,7 @@ export type GateResult = {
 type BannedCategory = { severity?: string; words?: string[]; phrases?: string[] };
 type BannedDoc = { categories?: Record<string, BannedCategory> };
 
-function loadBannedTerms(): { block: string[]; warn: string[] } {
+function loadBannedTerms(): { block: string[]; warn: string[]; ok: boolean } {
   try {
     const doc = JSON.parse(fs.readFileSync(BANNED_JSON_PATH, "utf-8")) as BannedDoc;
     const block: string[] = [];
@@ -45,9 +45,11 @@ function loadBannedTerms(): { block: string[]; warn: string[] } {
       if (cat.severity === "block") block.push(...terms);
       else if (cat.severity === "warn") warn.push(...terms);
     }
-    return { block, warn };
+    return { block, warn, ok: true };
   } catch {
-    return { block: [], warn: [] };
+    // Fail CLOSED: a missing/unparseable list must not silently let every
+    // banned word through — the caller turns this into a failing gate.
+    return { block: [], warn: [], ok: false };
   }
 }
 
@@ -96,6 +98,16 @@ const STOP_TITLES = new Set([
   "But", "And", "Why", "What", "When", "Where", "How", "New", "Today", "Now",
 ]);
 
+// Common acronyms that are CONCEPTS or generic terms, not named entities
+// (regulator/firm/person). Without this, "KYC" + "AML" alone would satisfy the
+// ">=2 named entities" gate — the false-positive the 2026-07-01 audit flagged.
+const STOP_ACRONYMS = new Set([
+  "KYC", "AML", "CFT", "CDD", "EDD", "DD", "KYB", "AML/CFT", "PEP", "SAR", "STR",
+  "AI", "ML", "API", "SDK", "URL", "FAQ", "CEO", "CFO", "COO", "CTO", "CCO",
+  "MLRO", "DPO", "EU", "US", "USA", "UK", "UAE", "GDP", "GDPR", "KPI", "ROI",
+  "B2B", "B2C", "P2P", "TL", "DR", "OK", "ID", "IT", "HR", "PR", "VC", "IPO",
+]);
+
 export function countNamedEntities(body: string): string[] {
   const text = stripNoise(body);
   const found = new Set<string>();
@@ -105,8 +117,11 @@ export function countNamedEntities(body: string): string[] {
     const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(e)}(?![\\p{L}\\p{N}])`, "u");
     if (re.test(text)) found.add(e);
   }
-  // ALL-CAPS acronyms (KYC, AML, AI, EU, UAE, FATF, ...).
-  for (const m of text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)) found.add(m[0]);
+  // ALL-CAPS acronyms (FATF, VARA, OFAC, ...) — but skip generic concept
+  // acronyms (KYC, AML, EU, ...) that aren't named entities.
+  for (const m of text.matchAll(/\b[A-Z][A-Z0-9]{1,5}\b/g)) {
+    if (!STOP_ACRONYMS.has(m[0])) found.add(m[0]);
+  }
   // Title-Case proper nouns NOT at the start of a sentence (so "An AI" doesn't
   // count "An", but "Emirates flight" counts "Emirates"). Skip the stop-list.
   for (const m of text.matchAll(/(?<=[a-z,]\s)([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g)) {
@@ -150,7 +165,7 @@ export function runGates(draft: Pick<Draft, "body" | "platform" | "image"> & {
 }): GateResult {
   const checks: GateCheck[] = [];
   const body = draft.body || "";
-  const { block, warn } = loadBannedTerms();
+  const { block, warn, ok: bannedOk } = loadBannedTerms();
 
   // 1. Banned words (humanizer block list) — FAIL.
   const banned = findTerms(body, block);
@@ -158,8 +173,12 @@ export function runGates(draft: Pick<Draft, "body" | "platform" | "image"> & {
     id: "banned-words",
     label: "No banned AI-tell words/phrases",
     severity: "fail",
-    passed: banned.length === 0,
-    detail: banned.length ? `found: ${banned.join(", ")}` : undefined,
+    passed: bannedOk && banned.length === 0,
+    detail: !bannedOk
+      ? `banned-words list unavailable at ${BANNED_JSON_PATH} — cannot verify`
+      : banned.length
+      ? `found: ${banned.join(", ")}`
+      : undefined,
   });
 
   // 2. >=2 named entities — FAIL.
