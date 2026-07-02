@@ -84,8 +84,36 @@ export function ComposerCanvas({
     blocked?: boolean;
     gate?: { failures?: any[]; warnings?: any[] };
     telegram?: { ok?: boolean; detail?: string };
+    approvedSlot?: string | null;
   } | null>(null);
   const [sending, setSending] = useState(false);
+
+  // Approve runs the same blocking gates as "Send to review" (422 on fail) and
+  // auto-schedules via approve.py apply — surface both outcomes in the panel.
+  async function approveDraft(filename: string) {
+    setSending(true);
+    setReview(null);
+    try {
+      const r = await fetch(`/api/drafts/${filename}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved", body }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 422) {
+        setReview({ blocked: true, gate: data.gate });
+      } else if (r.ok) {
+        setStatus("approved");
+        setReview({ gate: data.gate, approvedSlot: data.draft?.scheduled_at || null });
+      } else {
+        setReview({ blocked: true, gate: { failures: [{ label: data.error || data.detail || `error ${r.status}` }] } });
+      }
+    } catch (e: any) {
+      setReview({ blocked: true, gate: { failures: [{ label: String(e) }] } });
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function sendToReview(filename: string) {
     setSending(true);
@@ -413,7 +441,11 @@ export function ComposerCanvas({
                 <CheckCircle2 size={15} className="text-success mt-0.5 shrink-0" />
                 <div>
                   <div className="font-semibold text-success">
-                    Sent to Telegram for approval{review.telegram?.ok === false ? " (telegram send failed)" : ""}.
+                    {review.approvedSlot !== undefined
+                      ? review.approvedSlot
+                        ? `Approved — scheduled for ${review.approvedSlot}.`
+                        : "Approved — fires on the next scheduler run."
+                      : `Sent to Telegram for approval${review.telegram?.ok === false ? " (telegram send failed)" : ""}.`}
                   </div>
                   {review.telegram?.ok === false && (
                     <div className="text-ink-500 mt-0.5 font-mono text-[11px]">{review.telegram?.detail}</div>
@@ -451,11 +483,8 @@ export function ComposerCanvas({
           )}
           {status !== "approved" ? (
             <Button
-              onClick={() => {
-                setStatus("approved");
-                save({ newStatus: "approved" });
-              }}
-              disabled={saving || xOver}
+              onClick={() => approveDraft(selected.filename)}
+              disabled={sending || saving || xOver}
               variant="primary"
               className="!h-10 !px-4"
             >
