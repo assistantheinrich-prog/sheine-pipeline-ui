@@ -33,7 +33,10 @@ async function generateImage(prompt: string, aspect: "1:1" | "16:9" | "9:16" = "
   const project = process.env.GOOGLE_CLOUD_PROJECT;
   if (!project) throw new Error("GOOGLE_CLOUD_PROJECT not set");
 
-  const model = "gemini-3-pro-image";
+  // Model id is centrally pinned via GEMINI_IMAGE_MODEL in ~/.zshenv so every
+  // workspace defaults to the same image model (Nano Banana Pro, NOT Imagen).
+  // Fallback keeps the route working if the env var is ever unset.
+  const model = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image";
   // Nano Banana Pro is served ONLY on the global endpoint (404s on regional
   // endpoints), so pin global regardless of GOOGLE_CLOUD_LOCATION.
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;

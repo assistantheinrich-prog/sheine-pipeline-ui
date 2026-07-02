@@ -109,7 +109,7 @@ export function ImagePanel({ body, platform, draftFilename }: Props) {
         <ImageIcon size={14} className="text-brand" />
         <span className="text-[12px] font-semibold text-ink-900">Image</span>
         <span className="text-[10.5px] uppercase tracking-label text-ink-400 ml-auto">
-          imagen / openai / grok
+          gemini / openai / grok
         </span>
       </div>
 
