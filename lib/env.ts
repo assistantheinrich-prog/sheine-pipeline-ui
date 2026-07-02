@@ -11,7 +11,6 @@ export function loadEnvOnce(): void {
   loaded = true;
   const candidates = [
     path.join(os.homedir(), ".sheine/.env"),
-    path.join(os.homedir(), ".openclaw/.env"),
   ];
   for (const file of candidates) {
     let raw = "";
