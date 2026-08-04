@@ -91,6 +91,32 @@ export function ComposerCanvas({
   // Approve runs the same blocking gates as "Send to review" (422 on fail) and
   // auto-schedules via approve.py apply — surface both outcomes in the panel.
   async function approveDraft(filename: string) {
+    // ai-check gate: every post passes the AI-tell scan before approval.
+    // Checker failure never blocks approval (gate degrades open, not shut).
+    try {
+      const res = await fetch("/api/ai-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const check = await res.json();
+      if (res.ok && typeof check.score === "number" && check.score >= 5) {
+        const list = (check.findings || [])
+          .slice(0, 8)
+          .map((f: { category: string; excerpt: string }) => `• [${f.category}] ${f.excerpt}`)
+          .join("\n");
+        const more =
+          (check.findings || []).length > 8 ? `\n…and ${(check.findings || []).length - 8} more` : "";
+        if (
+          !confirm(
+            `ai-check: ${check.verdict} (score ${check.score}/1k words)\n\n${list}${more}\n\nApprove anyway?`
+          )
+        )
+          return;
+      }
+    } catch {
+      // ai-check unavailable — approve proceeds
+    }
     setSending(true);
     setReview(null);
     try {
